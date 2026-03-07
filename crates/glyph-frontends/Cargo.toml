@@ -1,0 +1,11 @@
+[package]
+name = "glyph-frontends"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-ir = { path = "../glyph-ir" }
+glyph-canon = { path = "../glyph-canon" }
+glyph-q16 = { path = "../glyph-q16" }
+unicode-normalization = { workspace = true }
+thiserror = { workspace = true }

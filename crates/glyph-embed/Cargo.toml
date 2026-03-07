@@ -1,0 +1,12 @@
+[package]
+name = "glyph-embed"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-q16 = { path = "../glyph-q16" }
+glyph-ir = { path = "../glyph-ir" }
+glyph-canon = { path = "../glyph-canon" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }

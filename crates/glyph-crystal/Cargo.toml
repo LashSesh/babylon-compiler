@@ -1,0 +1,15 @@
+[package]
+name = "glyph-crystal"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-q16 = { path = "../glyph-q16" }
+glyph-ir = { path = "../glyph-ir" }
+glyph-embed = { path = "../glyph-embed" }
+glyph-tic = { path = "../glyph-tic" }
+glyph-canon = { path = "../glyph-canon" }
+glyph-mef = { path = "../glyph-mef" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }

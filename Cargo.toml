@@ -1,0 +1,28 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/glyph-q16",
+    "crates/glyph-canon",
+    "crates/glyph-ir",
+    "crates/glyph-rd",
+    "crates/glyph-registry",
+    "crates/glyph-frontends",
+    "crates/glyph-embed",
+    "crates/glyph-tic",
+    "crates/glyph-crystal",
+    "crates/glyph-mef",
+    "crates/glyph-gate",
+    "crates/glyph-expand",
+    "crates/glyph-bundle",
+    "crates/glyph-verify",
+    "crates/glyph-cli",
+]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+unicode-normalization = "0.1"
+clap = { version = "4", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"

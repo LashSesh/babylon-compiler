@@ -1,0 +1,13 @@
+[package]
+name = "glyph-verify"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-bundle = { path = "../glyph-bundle" }
+glyph-canon = { path = "../glyph-canon" }
+glyph-rd = { path = "../glyph-rd" }
+glyph-mef = { path = "../glyph-mef" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

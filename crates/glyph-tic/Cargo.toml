@@ -1,0 +1,10 @@
+[package]
+name = "glyph-tic"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-q16 = { path = "../glyph-q16" }
+glyph-embed = { path = "../glyph-embed" }
+serde = { workspace = true }
+serde_json = { workspace = true }

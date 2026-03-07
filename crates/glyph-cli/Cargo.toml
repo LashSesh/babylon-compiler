@@ -1,0 +1,27 @@
+[package]
+name = "glyph-cli"
+version = "0.2.0"
+edition = "2021"
+
+[[bin]]
+name = "glyph"
+path = "src/main.rs"
+
+[dependencies]
+glyph-q16 = { path = "../glyph-q16" }
+glyph-canon = { path = "../glyph-canon" }
+glyph-ir = { path = "../glyph-ir" }
+glyph-rd = { path = "../glyph-rd" }
+glyph-registry = { path = "../glyph-registry" }
+glyph-frontends = { path = "../glyph-frontends" }
+glyph-embed = { path = "../glyph-embed" }
+glyph-tic = { path = "../glyph-tic" }
+glyph-crystal = { path = "../glyph-crystal" }
+glyph-mef = { path = "../glyph-mef" }
+glyph-gate = { path = "../glyph-gate" }
+glyph-expand = { path = "../glyph-expand" }
+glyph-bundle = { path = "../glyph-bundle" }
+glyph-verify = { path = "../glyph-verify" }
+clap = { workspace = true }
+serde_json = { workspace = true }
+unicode-normalization = { workspace = true }

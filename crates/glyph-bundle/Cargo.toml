@@ -1,0 +1,18 @@
+[package]
+name = "glyph-bundle"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-ir = { path = "../glyph-ir" }
+glyph-rd = { path = "../glyph-rd" }
+glyph-mef = { path = "../glyph-mef" }
+glyph-crystal = { path = "../glyph-crystal" }
+glyph-canon = { path = "../glyph-canon" }
+glyph-tic = { path = "../glyph-tic" }
+glyph-embed = { path = "../glyph-embed" }
+glyph-gate = { path = "../glyph-gate" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
