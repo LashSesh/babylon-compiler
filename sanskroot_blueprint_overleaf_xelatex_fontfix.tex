@@ -1,0 +1,448 @@
+% Sanskroot integration blueprint
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{amsmath}
+
+% --- Font strategy (XeLaTeX) ---
+% This document must be compiled with XeLaTeX to guarantee correct Devanagari rendering.
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+
+% Overleaf includes Google Noto fonts. These two cover Latin + Devanagari reliably.
+\setmainfont{Noto Serif}
+\setmonofont{Noto Sans Mono}
+
+\newfontfamily\devanagarifont{Noto Sans Devanagari}[Script=Devanagari]
+\newcommand{\textdevanagarifont}[1]{{\devanagarifont #1}}
+
+% Automatic font switching for Devanagari code points.
+\usepackage{ucharclasses}
+\setTransitionsFor{Devanagari}{\devanagarifont}{\normalfont}
+
+
+
+\begin{document}
+
+\title{Sanskroot Integration Blueprint for MERKABA Factory}
+\author{}
+\date{\today}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+The purpose of this document is to provide a comprehensive blueprint for
+integrating \emph{Sanskroot}, a new programming language with source code
+written in Devanagari script, into the \textbf{MERKABA Factory} project.  MERKABA
+Factory is a deterministic software foundry that converts inputs into
+canonical intermediate representations and then synthesises code and other
+artefacts.  This blueprint is meant to serve as a ``treasure map'' for
+developers and autonomous agents: it outlines the design goals of Sanskroot,
+describes the linguistic features of the Devanagari script, explains why
+normalisation is necessary, and specifies the implementation tasks required
+to ensure that Sanskroot fits within MERKABA’s architecture without
+compromising determinism or reproducibility.
+
+The blueprint caters both to minimal viable functionality and to maximal
+expressiveness.  It provides a clear specification for a small core language
+that is easy to implement, yet lays the groundwork for elaborate features
+such as using Devanagari punctuation and special symbols as operators.
+
+\section{MERKABA Factory Overview}
+
+MERKABA Factory exposes a layered architecture with a deterministic
+transformation engine at its core.  Runs are described by a run descriptor
+and executed by the engine, which applies a pipeline of operators to
+generate canonical digests and evidence traces.  On top of the core engine
+are domain translators and artefact emitters.  Translators take source
+inputs (code or specifications) and produce a \emph{Universal Intermediate
+Representation} (UIR), a graph-based structure that captures program
+semantics.  Emitters consume this UIR to produce target code, documentation
+and deployment bundles.  A vacuum layer manages persistence and reusable
+crystals, while surfaces (CLI, server, GUI, WASM) provide user access.
+
+Determinism is enforced by canonicalising inputs, hashing each transformation
+step and storing a replayable trace.  For Sanskroot integration, this
+architecture implies that the new language must (i) map into the existing
+UIR without introducing a new IR, (ii) respect the canonicalisation rules
+so that repeated runs over identical inputs produce identical outputs, and
+(iii) work with existing emitters or define new emitters in a deterministic
+manner.
+
+\section{The Devanagari Script}
+
+\subsection{Script Basics}
+
+Devanagari is an \emph{abugida}, a segmental writing system in which each
+consonant letter carries an inherent vowel and additional vowel sounds are
+written using dependent marks.  The script is written left-to-right and is
+recognisable by a horizontal headline across the top of full letters.  It
+descends from the Brāhmī script and is widely used across the Indian
+subcontinent, including for Hindi, Marathi and classical Sanskrit.  The
+script does not distinguish upper and lower case.  Each
+consonant has an inherent vowel \textsl{a}; this vowel is suppressed with
+a special sign (halant) and modified with combining marks (matras).  In
+tables of consonant–vowel combinations, the bare consonant such as
+\textdevanagarifont{क} (\emph{k}) represents the syllable \emph{ka} where the
+inherent vowel \textsl{a} is present.
+
+Dependent vowel signs (matras) attach to the base consonant before,
+after, above or below.  A vowel sign may have multiple parts that appear on\footnote{Practical notes on Devanagari vowel signs (matras) and storage order: \url{https://r12a.github.io/scripts/deva/hi.html}.}
+different sides of the base consonant cluster; these are known as
+\emph{matras}.  For example, the short \emph{i}
+vowel sign (\devanagarifont{ि}) is stored after the consonant in the
+character stream but rendered to the left of the base consonant.  The
+underlying code points preserve pronunciation order: the base consonant
+character is followed by the vowel sign.  This
+character order is critical for deterministic processing and must not be
+altered by renderer repositioning.
+
+\subsection{Combining Marks and Normalisation}
+
+Characters in the Devanagari block often involve combining marks such as
+vowel signs, nasal marks and the nuqta diacritic.  These marks can occur in
+multiple orders that are visually identical; a normalisation procedure is
+needed to ensure that equivalent sequences have a unique binary
+representation.  The Unicode Standard’s Normalisation Forms define how to\footnote{Unicode Standard Annex \#15 (Normalization Forms), canonical equivalence and NFC: \url{https://unicode.org/reports/tr15/}.}
+decompose and reorder combining marks and recombine precomposed characters.
+In particular, Normalisation Form C (NFC) performs canonical
+decomposition followed by canonical composition.  According to the Unicode
+consortium, the normalisation algorithm orders combining marks and uses
+decomposition and composition rules so that a binary comparison of
+normalised strings determines equivalence.  In other
+words, two canonically equivalent Devanagari sequences normalised to NFC
+will have exactly the same sequence of code points.
+
+There are script-specific exceptions: certain precomposed Devanagari
+characters, such as U+0958 \devanagarifont{क़} (DEVANAGARI LETTER QA), are
+excluded from canonical composition.  Implementations
+must rely on Unicode normalisation data (e.g. the composition exclusion
+tables) to avoid reintroducing such characters during composition.  For
+Sanskroot, the canonicalisation phase must normalise input to NFC and
+forbid forbidden characters, ensuring that the digest chain remains stable.
+
+\section{Designing the Sanskroot Language}
+
+\subsection{Goals and Philosophy}
+
+Sanskroot is conceived as a playful yet rigorous language written entirely
+in Devanagari script.  It demonstrates the flexibility of MERKABA
+Factory’s language infrastructure: by adding a new front-end to the
+translator layer, one can support a language whose tokens and keywords
+belong to a non-Latin script while still benefiting from deterministic
+pipelines.  The design intentionally balances minimalism and maximal
+capability:
+
+\begin{itemize}
+  \item \textbf{Minimal core:} Define a small set of language constructs (function
+    definitions, conditionals, variable binding, arithmetic, printing,
+    return) that can be mapped to existing UIR nodes.  This allows an
+    implementer to create a working prototype quickly.
+  \item \textbf{Maximal expressiveness:} Leave room for future extensions such
+    as Devanagari punctuation tokens (e.g. danda \devanagarifont{।}, double
+    danda \devanagarifont{॥}), special symbols like the om sign
+    \devanagarifont{ॐ}, Unicode spaces, or even mixed scripts.  The
+    blueprint outlines how to incorporate such features without breaking
+    determinism.
+\end{itemize}
+
+\subsection{Keyword Vocabulary}
+
+The core language uses a set of Devanagari keywords, chosen both for
+readability to speakers of Indic languages and for uniqueness when lexing.
+Table~\ref{tab:keywords} lists the keywords together with their Latin
+equivalents and meanings.  The keywords are case-insensitive (Devanagari
+has no case distinction) and are recognised only after Unicode
+normalisation to NFC.
+
+\begin{longtable}{llp{7cm}}
+\caption{Core Sanskroot keywords}\label{tab:keywords}\\
+\textbf{Devanagari} & \textbf{Latin gloss} & \textbf{Purpose}\\\hline
+\devanagarifont{कार्य} & \emph{kārya} & Start of a function definition (analogous to
+\texttt{fn}). The keyword is followed by the function name and parameter list.\\
+\devanagarifont{यदि} & \emph{yadi} & Conditional branch introduction (\texttt{if}).\\
+\devanagarifont{अन्यथा} & \emph{anyathā} & Else branch introduction (\texttt{else}).\\
+\devanagarifont{दर्शय} & \emph{darśaya} & Output a value to the console (\texttt{print}).\\
+\devanagarifont{निवृत्ति} & \emph{nivṛtti} & Return a value from a function.\\
+\devanagarifont{सत्य} & \emph{satya} & Boolean literal true.\\
+\devanagarifont{असत्य} & \emph{asatya} & Boolean literal false.\\
+\end{longtable}
+
+Additional identifiers (variable names, function names) may use any
+sequence of Devanagari letters and combining marks.  The lexer must
+normalise to NFC before matching keywords.  Numeric literals follow
+international digits by default (\texttt{0–9}); Devanagari digits may be
+added later.  String literals are enclosed in double quotation marks
+(\texttt{"} and \devanagarifont{"}) and may contain arbitrary Unicode
+characters; escapes follow Rust/Python conventions.
+
+\subsection{Lexical Rules}
+
+\paragraph{Normalisation.} Before lexing, the entire input must be
+normalised to Unicode NFC.  Without this, the same visual source could have
+different byte sequences (e.g. combining marks in varying order).  NFC
+normalises combining marks and recomposes sequences; it ensures that
+canonically equivalent texts reduce to a unique form.
+
+\paragraph{Identifiers.} An identifier begins with a Devanagari letter and may
+be followed by Devanagari letters, combining marks (matras, nasalisation
+marks), the nuqta (\devanagarifont{़}), and underscores.  Formally, let
+\texttt{XID\_Start\_Deva} denote the set of Devanagari code points of
+general category \texttt{Lu}, \texttt{Ll} and \texttt{Lo}.  Then an
+identifier token matches
+
+\[\text{identifier} := \mathrm{XID\_Start\_Deva}\ (\mathrm{XID\_Continue\_Deva})^*\]
+
+where \texttt{XID\_Continue\_Deva} includes letters, combining marks and
+digits.  The lexer checks if the resulting NFC-normalised token matches a
+keyword; otherwise it is treated as an identifier.
+
+\paragraph{Whitespace and Comments.} Standard ASCII whitespace (space, tab,
+newline) separates tokens.  As an extension, the Devanagari danda
+(\devanagarifont{।}) and double danda (\devanagarifont{॥}) may serve as
+statement separators.  Single-line comments start with a hash (\texttt{\#})
+and extend to the end of the line.  Multiline comments use
+\texttt{/*} \dots \texttt{*/}.
+
+\paragraph{Operators.} For the minimal version, operators mirror those of a
+typical imperative language: arithmetic (+, –, *, /), comparison (==, !=,
+<, >, \texttt{≤}, \texttt{≥}), logical (\texttt{\&\&}, \texttt{||}), and
+assignment (=).  Operators are ASCII for ease of typing.  The extended
+version may define Devanagari punctuation as operators (see
+Section~\ref{sec:maximum}).
+
+\subsection{Grammar (EBNF)}
+
+The core grammar of Sanskroot is intentionally simple and is presented in
+Extended Backus–Naur Form (EBNF).  Terminals are highlighted in
+\devanagarifont{Devanagari} where appropriate.
+
+\begin{verbatim}
+program       ::= { function }
+
+function      ::= 'कार्य' identifier '(' [ paramlist ] ')' '{' { statement } '}'
+paramlist     ::= identifier { ',' identifier }
+statement     ::= block | conditional | return | print | assignment | expression ';'
+block         ::= '{' { statement } '}'
+conditional   ::= 'यदि' '(' expression ')' statement [ 'अन्यथा' statement ]
+return        ::= 'निवृत्ति' expression ';'
+print         ::= 'दर्शय' expression ';'
+assignment    ::= identifier '=' expression ';'
+expression    ::= logical { ('+' | '-' ) logical }
+logical       ::= comparison { ('*' | '/') comparison }
+comparison    ::= unary { ( '==' | '!=' | '<' | '>' | '<=' | '>=' ) unary }
+unary         ::= primary | ('-' | '!') unary
+primary       ::= boolean | number | string | identifier | '(' expression ')'
+boolean       ::= 'सत्य' | 'असत्य'
+number        ::= [0-9]+  ; future: Devanagari digits
+string        ::= '"' { any-character-but-" } '"'
+\end{verbatim}
+
+This grammar yields an abstract syntax tree (AST) with nodes: Program,
+Function, Block, IfElse, Return, Print, Assignment, BinaryOp, UnaryOp,
+Literal, Identifier.  When mapping to the UIR, each AST node becomes one or
+more UIR nodes (described below).
+
+\subsection{UIR Mapping}
+
+MERKABA’s domain translator defines a graph-based UIR with node types such
+as Module, Function, Statement, Expression, Literal, Symbol and edges to
+capture containment, call relationships and data flow.  Sanskroot’s AST can
+be mapped to UIR as follows:
+
+\begin{itemize}
+  \item \textbf{Program}: Create a \texttt{Module} node labelled with the
+    file name or module name.  Each function becomes a child via a
+    \texttt{Contains} edge.
+  \item \textbf{Function}: Create a \texttt{Function} node with name and
+    parameter list.  Parameter identifiers become \texttt{Symbol} nodes with
+    a \texttt{Defines} edge from the function.  The function’s body is
+    represented as a \texttt{Block} node.
+  \item \textbf{Conditional}: Create an \texttt{If} node.  Connect the
+    condition expression to the \texttt{If} node via a \texttt{Condition}
+    edge.  The consequent and optional alternative blocks are connected via
+    \texttt{Then} and \texttt{Else} edges.
+  \item \textbf{Return}: Create a \texttt{Return} node and link the return
+    expression via an \texttt{Expr} edge.  Connect the return node to the
+    surrounding function via a \texttt{Contains} edge.
+  \item \textbf{Print}: Create a \texttt{Call} node targeting a built-in
+    print function.  The argument expression is attached via an
+    \texttt{Argument} edge.
+  \item \textbf{Assignment}: Create a \texttt{Defines} edge from the current
+    scope to a \texttt{Symbol} node representing the variable.  Map the
+    right-hand side expression to UIR and connect via an \texttt{Init}
+    edge.
+  \item \textbf{Expression, BinaryOp, UnaryOp, Literal}: Use existing UIR
+    expression nodes with appropriate operator labels.  Binary operations
+    become \texttt{BinaryExpr} nodes with \texttt{Left} and \texttt{Right}
+    edges.  Literals become \texttt{Literal} nodes.
+\end{itemize}
+
+This mapping strategy leverages the existing UIR without introducing a new
+representation.  Since MERKABA already serialises UIR via a DTO, the
+Sanskroot translator must produce UIR in the canonical DTO form (e.g.
+\texttt{UirGraphDto}).
+
+\subsection{Implementation Guidance}
+
+Implementing Sanskroot requires writing a new frontend in the MERKABA
+repository, for example in \texttt{kernel/crates/domain-translator/src/frontends/sanskroot.rs}.
+Key steps include:
+
+\begin{enumerate}
+  \item \textbf{Normalise input.} Use a Unicode normalisation library
+    (e.g. Rust’s \texttt{unicode\_normalization}) to convert the source into
+    NFC before any lexing.  This ensures that visually identical sources
+    yield identical byte sequences and thus identical digests.
+
+  \item \textbf{Lexing.} Implement a lexer that recognises Devanagari
+    keywords, identifiers, numeric literals and string literals.  Keywords
+    should be compared on NFC-normalised strings.  Record token positions
+    for error reporting.
+
+  \item \textbf{Parsing.} Implement a recursive descent or Pratt parser
+    matching the EBNF grammar.  Build an AST representing the program.
+
+  \item \textbf{Lowering to UIR.} Traverse the AST and emit UIR nodes and
+    edges according to the mapping described above.  Ensure that UIR node
+    identifiers are deterministic (e.g. derived from input order) so that
+    repeated runs generate the same UIR structure.
+
+  \item \textbf{Integration.} Expose Sanskroot as a supported language in
+    the translator’s configuration (e.g. via a language registry).  Add
+    tests to the repository that compile sample Sanskroot programs,
+    generate UIR JSON and verify that repeated runs produce identical
+    digests.  Provide CLI flags so that users can specify \texttt{--source-lang
+    sanskroot}.
+
+  \item \textbf{Documentation.} Update user documentation and the README to
+    describe the new language, including the keywords and grammar.  Include
+    examples of round-trip translation to existing targets (e.g. Python or
+    Rust code generation).
+\end{enumerate}
+
+\subsection{Definition of Done}
+
+To ensure that the Sanskroot integration is successful, the following
+criteria must be met:
+
+\begin{enumerate}
+  \item \textbf{Deterministic replay.} Two runs over the same Sanskroot
+    program and run descriptor must yield the same output digests and UIR
+    JSON.  This implies that the parser and UIR emission are deterministic
+    and that NFC normalisation is applied consistently.
+
+  \item \textbf{Canonical UIR.} The output UIR must use the canonical
+    transport format adopted by MERKABA (e.g. \texttt{UirGraphDto}).  No
+    additional intermediate representations may be introduced.
+
+  \item \textbf{Golden path.} A CLI command like:
+    \begin{quote}
+      \texttt{merkaba run --source-lang sanskroot --input examples/hello.skrt \\
+      --emit-bundle out/hello\_bundle}
+    \end{quote}
+    must generate a bundle containing the normalised source, UIR JSON,
+    evidence trace, manifest, and generated code (e.g. Python).  A test
+    should verify that the bundle is identical across repeated runs.
+
+  \item \textbf{Tests and documentation.} Unit tests must cover the
+    lexer, parser and UIR mapping for Sanskroot.  The documentation must
+    accurately reflect the implemented behaviour.
+
+  \item \textbf{Compatibility.} The integration must not break existing
+    languages or the core MERKABA workflow.  Code review should confirm
+    that common utilities (e.g. normalisation, digest policy) are used
+    consistently.
+\end{enumerate}
+
+\section{Maximum Features and Extensions}
+\label{sec:maximum}
+
+This section sketches optional extensions that push Sanskroot into
+\emph{maximal} territory.  Implementers should treat these as future work
+and only pursue them after the minimal core is stable.
+
+\subsection{Devanagari Punctuation as Operators}
+
+The Devanagari script includes punctuation such as the danda (\devanagarifont{।})
+and double danda (\devanagarifont{॥}).  These symbols can be repurposed as
+statement separators or block delimiters.  For example, instead of using
+curly braces, one might use \devanagarifont{॥} to close a block.  If this
+extension is adopted, the parser must normalise these punctuation marks and
+define clear operator precedence.  Any such feature should come with a
+normalisation rule to avoid confusable characters (e.g. full stop vs. danda).
+
+\subsection{Om Sign for Entry Point}
+
+The Om sign (\devanagarifont{ॐ}) is a visually distinctive character with deep
+symbolic meaning.  A maximal variant of Sanskroot could designate a
+function whose name is \devanagarifont{ॐ} as the program’s entry point, similar
+to \texttt{main} in C.  The translator would interpret a top-level
+\texttt{कार्यॐ()} definition as the entry point.  Because this symbol is
+excluded from canonical composition, NFC normalisation preserves its code
+point.
+
+\subsection{Mixed Scripts and Unicode Fun}
+
+One might allow ASCII identifiers or operators inside a Devanagari program,
+or even embed emojis.  To maintain determinism, any such extension must
+define a precise normalisation pipeline and a comprehensive keyword table.
+Unicode confusable characters should be mapped to a canonical set to avoid
+hash differences.  Implementers are advised to restrict mixed scripts to
+well-defined contexts (e.g. string literals) until strong normalisation
+support is available.
+
+\subsection{Custom Digits and Numerals}
+
+Devanagari digits (\devanagarifont{०}–\devanagarifont{९}) could be supported for
+numeric literals.  To do this, the lexer must translate these symbols to
+their corresponding numeric values and ensure that normalisation does not
+alter them.  The Unicode standard includes composition exclusions for
+certain Devanagari characters, but digits are
+composed and decompose trivially.
+
+\section{Integration Checklist}
+
+For ease of reference, this section summarises the critical tasks that must
+be completed to integrate Sanskroot into MERKABA Factory:
+
+\begin{enumerate}
+  \item \textbf{Verify Devanagari support.} Ensure that build tools and
+    continuous integration servers support Unicode source files.  Use
+    version control settings (e.g. \texttt{.gitattributes}) to treat
+    Sanskroot files as UTF-8 text.
+  \item \textbf{Normalisation.} Incorporate NFC normalisation into the
+    canonicalisation phase of the MERKABA pipeline.  Write unit tests
+    demonstrating that multiple canonical Devanagari encodings map to the
+    same digest.
+  \item \textbf{Frontend implementation.} Implement the lexer, parser,
+    AST and UIR mapping as described.  Use deterministic node ordering
+    and avoid non-deterministic data structures (e.g. hash maps without
+    deterministic iteration).
+  \item \textbf{Bundle generation.} Extend the CLI and server surfaces
+    to accept Sanskroot sources and to emit bundles containing the
+    translated code and metadata.  Update the GUI (Tauri) to support
+    Devanagari file names and syntax highlighting.
+  \item \textbf{Testing and review.} Add golden path tests and replay
+    verification.  Conduct code review to ensure that no global state or
+    randomisation has crept into the implementation.
+\end{enumerate}
+
+\section{Conclusion}
+
+This blueprint lays the foundation for integrating Sanskroot, a
+Devanagari-based programming language, into MERKABA Factory.  By adhering
+to Unicode normalisation, mapping to the existing UIR and maintaining
+determinism throughout the pipeline, developers can build a rich and
+playful language without jeopardising the core guarantees of MERKABA.
+Once the minimal language is fully implemented and verified, the maximal
+extensions sketched here—including Devanagari punctuation operators and
+special entry symbols—offer fertile ground for experimentation and
+trolling, turning the system into a versatile and fantastical programming
+kitchen.
+
+\end{document}
