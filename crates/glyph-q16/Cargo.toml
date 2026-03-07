@@ -1,0 +1,11 @@
+[package]
+name = "glyph-q16"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
