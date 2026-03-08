@@ -1,7 +1,7 @@
 # Babylon Compiler
 
 **A deterministic compiler that transforms source code into "Crystals" - cryptographically certified knowledge artifacts.**
-**Built in Rust, implementing the [Glyph Foundry Framework](glyph_foundry_spec.pdf).**
+**Built in Rust** **(Implementing the [Glyph Foundry Framework](glyph_foundry_spec.pdf).**
 
 Babylon compiles source code through an 8-stage pipeline — parsing, canonicalization, embedding, convergence tracking, obligation gating, and tamper-evident chain recording — to produce fully verifiable, reproducible bundles. Every computation uses fixed-point arithmetic (Q16) and canonical JSON (RFC 8785) to guarantee bitwise determinism across platforms.
 
