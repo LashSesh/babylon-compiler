@@ -157,6 +157,14 @@ fn s1_canon(
             let doc = glyph_frontends::sanskroot::lower::lower(&program, source_digest);
             Ok(doc)
         }
+        "hanlan" => {
+            let tokens = glyph_frontends::hanlan::lexer::lex(normalized)
+                .map_err(|e| (3, format!("Lex error: {}", e)))?;
+            let program = glyph_frontends::hanlan::parser::parse(&tokens)
+                .map_err(|e| (3, format!("Parse error: {}", e)))?;
+            let doc = glyph_frontends::hanlan::lower::lower(&program, source_digest);
+            Ok(doc)
+        }
         _ => Err((1, format!("Unknown frontend: {}", frontend))),
     }
 }
