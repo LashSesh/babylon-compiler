@@ -1,0 +1,1571 @@
+% ============================================================================
+%  Cuneiform Operator Language — Master Specification v3.0
+%  Normative Reference for the Babylon Compiler COL Frontend
+%  Sebastian Klemm · 2026
+%  
+%  This document supersedes:
+%    - COL_de.pdf        (v1.0, German outline, March 2026)
+%    - cuneiform_operator_language_final_tex.pdf (v2.0, English, March 2026)
+%    - COL_3.pdf          (v2.1, Keilschrift++, March 2026)
+%  All three are hereby absorbed and rendered historically obsolete.
+% ============================================================================
+
+\documentclass[11pt,a4paper,twoside]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% \usepackage{lmodern} % Enable on Overleaf
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{left=28mm,right=28mm,top=30mm,bottom=30mm}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\crefname{invariant}{Invariant}{Invariants}
+\crefname{requirement}{Requirement}{Requirements}
+\crefname{definition}{Definition}{Definitions}
+\crefname{rationale}{Rationale}{Rationales}
+\crefrangeformat{invariant}{Invariants~#3#1#4--#5#2#6}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{parskip}
+% \usepackage{microtype} % Enable on Overleaf
+
+% ── Colors ────────────────────────────────────────────────────────────────
+\definecolor{normblue}{HTML}{1A3A6B}
+\definecolor{reqred}{HTML}{9B1B30}
+\definecolor{codegreen}{HTML}{2E7D32}
+\definecolor{codegray}{HTML}{F5F5F5}
+
+% ── Hyperref config ───────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=normblue,
+  citecolor=normblue,
+  urlcolor=normblue,
+  pdftitle={COL Master Specification v3.0},
+  pdfauthor={Sebastian Klemm},
+}
+
+% ── Listings ──────────────────────────────────────────────────────────────
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codegray},
+  frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  tabsize=2,
+  showstringspaces=false,
+}
+\lstdefinelanguage{EBNF}{
+  morekeywords={program,function,paramlist,statement,ifstmt,return,assignment,exprstmt,expression,comparison,addition,term,factor,call,arglist,literal,name},
+  morecomment=[l]{//},
+  morestring=[b]",
+  sensitive=true,
+}
+\lstdefinelanguage{JSON}{
+  morestring=[b]",
+  morecomment=[l]{//},
+  literate=
+    *{0}{{{\color{codegreen}0}}}{1}
+     {1}{{{\color{codegreen}1}}}{1}
+     {2}{{{\color{codegreen}2}}}{1}
+     {3}{{{\color{codegreen}3}}}{1}
+     {4}{{{\color{codegreen}4}}}{1}
+     {5}{{{\color{codegreen}5}}}{1}
+     {6}{{{\color{codegreen}6}}}{1}
+     {7}{{{\color{codegreen}7}}}{1}
+     {8}{{{\color{codegreen}8}}}{1}
+     {9}{{{\color{codegreen}9}}}{1}
+     {:}{{{\color{normblue}{:}}}}{1}
+     {,}{{{\color{normblue}{,}}}}{1},
+}
+
+% ── Theorem-like environments ─────────────────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{requirement}{Requirement}[section]
+\newtheorem{invariant}{Invariant}[section]
+\newtheorem{definition}{Definition}[section]
+
+\theoremstyle{remark}
+\newtheorem{rationale}{Rationale}[section]
+
+% ── Requirement shorthand ─────────────────────────────────────────────────
+\newcommand{\req}[1]{\textbf{\textcolor{reqred}{[REQ-#1]}}}
+\newcommand{\must}{\textsc{must}}
+\newcommand{\mustnot}{\textsc{must~not}}
+\newcommand{\should}{\textsc{should}}
+\newcommand{\may}{\textsc{may}}
+
+% ── Header / Footer ──────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\thepage}
+\fancyhead[LO]{\small\nouppercase{\leftmark}}
+\fancyhead[RE]{\small COL Master Specification v3.0}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ────────────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries\color{normblue}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\color{normblue}}{\thesubsection}{1em}{}
+
+% ======================================================================
+\begin{document}
+
+% ── Title page ────────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\Huge\bfseries\color{normblue} Cuneiform Operator Language\\[6pt]
+Master Specification v3.0}\\[1.5cm]
+{\Large Deterministic Glyph Programming as a Registry-Bound,\\
+Evidence-Carrying, Evolvable Frontend\\
+for Babylon Compiler}\\[2.5cm]
+{\large Sebastian Klemm}\\[0.5cm]
+{\large March 2026}\\[3cm]
+\rule{0.6\textwidth}{0.4pt}\\[1cm]
+{\small\itshape This specification absorbs and supersedes:\\[4pt]
+\begin{tabular}{rl}
+v1.0 & Glyph Operator Design (Babylon Compiler) --- German outline\\
+v2.0 & Cuneiform Operator Language Specification --- English\\
+v2.1 & Keilschrift++ / COL v2.1 --- German, extended\\
+\end{tabular}\\[8pt]
+All three predecessor documents are hereby rendered historically obsolete.}
+\end{titlepage}
+
+% ── Abstract ──────────────────────────────────────────────────────────
+\begin{abstract}
+\noindent
+This document is the sole normative specification for the Cuneiform Operator Language~(COL), a production-oriented glyph language designed for deterministic compilation, evidence-bearing execution, controlled language evolution, and replay verification within the Babylon Compiler. COL treats cuneiform not as an exotic surface syntax but as a \emph{registry-bound operator address space} in which glyphs and glyph clusters address versioned operators, deterministic macro expansions, and evidence-bearing semantic transitions that lower into a single canonical intermediate representation.
+
+The specification defines COL as a state-first, graph-first, and evidence-first system. It normatively establishes: a strict Unicode policy for cuneiform sources; a single canonical lowering target aligned with Babylon's \texttt{glyph-ir}; a family of five digest-bound registries (Sign, Macro, Profile, Obligation, Gate); a formal epoch model for frozen language versions; a deterministic mutation engine with seed-bound candidate generation; a tripolar decision layer (\texttt{0\,/\,LD\,/\,1}) for mutation acceptance; a contraction-based stabilization principle with Banach-fixpoint interpretation; a crystallization layer for freezing new language epochs; a resonance analysis layer for coherence evaluation; evidence capsules as declared boundary objects; and a bundle/manifest discipline that preserves replayability across evolution.
+
+The result is not merely a new syntax but a language architecture in which the evolution of the language itself becomes a formal, inspectable, and reproducible process. Integration into Babylon Compiler is specified at the level of crate structure, CLI commands, pipeline stages, and bundle format.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ======================================================================
+% PART I: PREAMBLE AND EXTRACTED INVARIANTS
+% ======================================================================
+
+\section{Preamble}
+\label{sec:preamble}
+
+\subsection{Scope}
+
+This specification covers the complete Cuneiform Operator Language~(COL) as a frontend language system for Babylon Compiler. It is normative for:
+
+\begin{enumerate}[label=(\alph*)]
+  \item the lexical and syntactic structure of COL source programs,
+  \item the lowering contract from COL surface to Babylon's canonical IR,
+  \item the registry family that governs glyph semantics and macro expansion,
+  \item the epoch model for frozen, replayable language versions,
+  \item the mutation engine for controlled language evolution,
+  \item the tripolar gate logic for mutation acceptance,
+  \item the contraction/fixpoint/crystallization discipline,
+  \item the resonance analysis layer,
+  \item evidence capsules and their policy framework,
+  \item integration into Babylon Compiler's crate architecture, CLI surface, and bundle format,
+  \item the test architecture and the normative Definition of Done.
+\end{enumerate}
+
+\subsection{Normative Language}
+
+Throughout this document, ``\must'' indicates an absolute requirement; ``\mustnot'' an absolute prohibition; ``\should'' a strong recommendation; ``\may'' an optional feature. Requirements are numbered as \req{S.N} where \texttt{S} is the section and \texttt{N} the ordinal.
+
+\subsection{Evolutionary Context}
+
+This specification was derived by invariant extraction, conflict resolution, and gap closure from three predecessor documents:
+
+\begin{description}[style=nextline,leftmargin=2.5cm]
+  \item[v1.0 (COL\_de)] German-language outline (11~pages). Established the core thesis of cuneiform as an operator address space, defined determinism, canonicality, evidence binding, the Sign Registry, the minimal EBNF grammar, the IR lowering contract, and the Definition of Done. Remained static (no evolution model) and contained mostly placeholders in its appendices.
+  \item[v2.0 (English)] Full English specification (16~pages). Extended v1.0 with: language epochs, five registry types, a mutation engine, tripolar gate logic, contraction/fixpoint analysis, crystallization, resonance layer, and evidence capsules. Provided concrete epoch objects and gate objects. Still lacked the spiral embedding model and the QLOGIC-ISA layer.
+  \item[v2.1 (Keilschrift++)] Extended German specification (29~pages). Added the spiral mutation model, the QLOGIC-ISA opcode layer, detailed Banach-fixpoint interpretation, micro-dynamics convergence, HDAG ordering, self-compilation stability, MEF/evidence chain details for crystallization, RSS resonance with phase/twist structure, and a substantially tightened Definition of Done.
+\end{description}
+
+The present v3.0 absorbs all invariants from all three documents, resolves their conflicts, closes their gaps, and binds every normative statement to the real architecture of Babylon Compiler as it exists in the repository.
+
+
+\subsection{Extracted Invariants}
+\label{sec:invariants}
+
+The following invariants were extracted as stable across all three predecessor documents and are \emph{non-negotiable} in this specification:
+
+\begin{invariant}[Determinism]
+\label{inv:determinism}
+For any given normalized source~$s$, run descriptor~$\mathit{RD}$, epoch~$E_t$, and registry set~$\mathcal{R}$, the system \must{} produce identical IR bytes, manifest digests, trace digests, and verification outcomes. Any feature that undermines this property is disallowed.
+\end{invariant}
+
+\begin{invariant}[Canonicality]
+\label{inv:canonicality}
+Every semantically meaningful structure \must{} admit a single, stable, hashable serialized form. This applies to Unicode handling, registry binding, IR serialization, node/edge ordering, and bundle manifests. The canonical serialization format is RFC~8785 (JCS) canonical JSON; the hash algorithm is SHA-256.
+\end{invariant}
+
+\begin{invariant}[Evidence Binding]
+\label{inv:evidence}
+No semantically relevant transition \should{} occur as an unrecorded side effect. Relevant decisions, mutations, gates, and crystallization steps \must{} produce evidence objects that are bound into the emitted bundle via the MEF chain.
+\end{invariant}
+
+\begin{invariant}[Registry-Digest Binding]
+\label{inv:registry-digest}
+All active registries \must{} be bound by cryptographic digest in the run descriptor and surfaced in emitted manifests. A build is tied not merely to an input file but to a complete semantic environment.
+\end{invariant}
+
+\begin{invariant}[Replay Stability]
+\label{inv:replay}
+An artifact emitted under epoch~$E_t$ \must{} remain verifiable under the same digests indefinitely, even if the language later evolves to $E_{t+1}$ or beyond. Replay stability does not require every new epoch to interpret every old source identically; it requires that earlier epochs remain reconstructible and verifiable as earlier epochs.
+\end{invariant}
+
+\begin{invariant}[Evolution Under Constraint]
+\label{inv:evolution}
+The language \may{} evolve only through explicitly bounded mutation procedures. A build \must{} remain stable; evolution \may{} occur only between builds, never inside the semantic interpretation of a single build. Three time scales are strictly separated: build time, evolution time, crystallization time.
+\end{invariant}
+
+\begin{invariant}[Single Canonical IR Target]
+\label{inv:single-ir}
+Every valid COL source \must{} lower into a single canonical IR (\texttt{glyph\_ir::IrDocument}). No alternative IR truth is allowed. This is the semantic anchor that makes replay, bundle verification, and epoch coexistence possible.
+\end{invariant}
+
+\begin{invariant}[Babylon Compiler Integration]
+\label{inv:babylon}
+COL \mustnot{} destabilize Babylon's existing canonicalization, bundle generation, or verification model. COL integrates as an additional frontend within the existing 8-stage pipeline (S0--S7). Evolution-specific modules (mutation, crystallization, epoch management) extend the pipeline without breaking it.
+\end{invariant}
+
+\begin{invariant}[Testability]
+\label{inv:testability}
+Every normative claim \must{} be testable. Determinism tests, evolution tests, tripolar gate tests, contraction/fixpoint tests, crystal tests, and capsule tests form the minimum required test families. The golden path \texttt{run} $\to$ \texttt{bundle} $\to$ \texttt{verify} serves as the minimal proof of function.
+\end{invariant}
+
+\begin{invariant}[Non-Triviality Proof]
+\label{inv:nontrivial}
+COL \must{} demonstrate that it is more than a skin frontend. This is satisfied if and only if at least one glyph or glyph cluster deterministically expands into a non-trivial, evidence-bearing operator subgraph whose expansion is visible in the bundle, manifest, and verify process. The semantic density metric $D = \frac{\#\text{IR nodes}}{\#\text{surface tokens}}$ \must{} measurably exceed~1.0 for at least one normative test vector.
+\end{invariant}
+
+
+% ======================================================================
+% PART II: CONFLICT AND REDUNDANCY ANALYSIS
+% ======================================================================
+
+\section{Conflict, Redundancy, and Maturity Analysis}
+\label{sec:conflicts}
+
+\subsection{Redundancies Resolved}
+
+\begin{longtable}{p{3.5cm}p{4.5cm}p{5.5cm}}
+\toprule
+\textbf{Topic} & \textbf{Redundancy} & \textbf{Resolution in v3.0} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Topic} & \textbf{Redundancy} & \textbf{Resolution in v3.0} \\
+\midrule
+\endhead
+Design principles & Determinism, canonicality, evidence binding restated in all three documents with near-identical wording. & Single normative statement as \cref{inv:determinism,inv:canonicality,inv:evidence}. \\
+\addlinespace
+State-first semantics & Repeated in introduction of all three documents. & Single statement in \cref{sec:theory}. \\
+\addlinespace
+Operator address space thesis & Central claim appears in every document. & Stated once in \cref{sec:operator-space} with formal criteria. \\
+\addlinespace
+EBNF grammar & v1.0 mentions it; v2.0 provides full grammar; v2.1 does not repeat. & Single normative EBNF in \cref{sec:grammar}. \\
+\addlinespace
+Discussion/conclusion & Every document contains a discursive section. & Absorbed into rationale blocks; no separate discussion section. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Conflicts Resolved}
+
+\begin{longtable}{p{3.5cm}p{4.5cm}p{5.5cm}}
+\toprule
+\textbf{Topic} & \textbf{Conflict} & \textbf{Resolution} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Topic} & \textbf{Conflict} & \textbf{Resolution} \\
+\midrule
+\endhead
+Registry taxonomy & v1.0 defines only a Sign Registry. v2.0/v2.1 define five registries (Sign, Macro, Profile, Obligation, Gate). & Five registries are normative. Aligned with Babylon's existing \texttt{glyph-registry} crate (Operator, Macro, Obligation, Observable) by mapping: Sign $\to$ Operator (extended), Profile $\to$ Observable (extended), Gate $\to$ new. \\
+\addlinespace
+Epoch tuple & v2.0: $E = (R_s, R_m, R_p, R_o, R_g, P, L, C)$. v2.1: $E = (R_s, R_m, R_p, R_o, R_g, P, L)$ with $C$ separate. & v3.0 adopts v2.1's separation: epoch and crystal are distinct objects. Crystal references its parent epoch. \\
+\addlinespace
+Minimal role set & v1.0: FN, IF, ELSE, RETURN, LET, PRINT, TRUE, FALSE. v2.0/v2.1: implicit via grammar. & Explicit minimal role set in Sign Registry (\cref{sec:sign-registry}) matching Babylon's existing keyword sets. \\
+\addlinespace
+Evolution model & v1.0 is static. v2.0 introduces evolution. v2.1 adds spiral model. & Evolution is normative. Spiral embedding is formalized as optional analytical layer (\cref{sec:spiral}), not as a hard pipeline requirement. \\
+\addlinespace
+QLOGIC-ISA & Only in v2.1, optional. & Formalized as optional extension point (\cref{sec:qlogic-isa}). Not required for Definition of Done v3.0. \\
+\addlinespace
+Resonance layer & v2.0 introduces; v2.1 elaborates with RSS/twist/phase. & Formalized as analytical metric contributor for gate decisions (\cref{sec:resonance}). Resonance fitness is one of several evaluation metrics; it does not replace deterministic invariants. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Maturity Assessment}
+
+\begin{longtable}{p{3.5cm}p{2cm}p{2.5cm}p{5cm}}
+\toprule
+\textbf{Feature} & \textbf{v1.0} & \textbf{v2.0/v2.1} & \textbf{v3.0 Status} \\
+\midrule
+\endfirsthead
+Core frontend (lex/parse/lower) & Outlined & Specified & Normative, implementation-ready \\
+Unicode policy & Outlined & Specified & Normative, aligned to \texttt{glyph-rd} \\
+Sign/Operator Registry & Basic & Full & Normative, mapped to \texttt{glyph-registry} \\
+Macro expansion & Mentioned & Specified & Normative, mapped to \texttt{glyph-expand} \\
+Epoch model & Absent & Full & Normative \\
+Mutation engine & Absent & Full & Normative \\
+Tripolar gate logic & Absent & Full & Normative, mapped to \texttt{glyph-gate} \\
+Contraction/fixpoint & Absent & Full & Normative \\
+Crystallization & Absent & Full & Normative, mapped to \texttt{glyph-crystal}/\texttt{glyph-tic} \\
+Resonance layer & Absent & Introduced & Normative as metric, not as pipeline stage \\
+Spiral embedding & Absent & v2.1 only & Optional analytical layer \\
+QLOGIC-ISA & Absent & v2.1 only & Optional extension point \\
+Evidence capsules & Mentioned & Full & Normative \\
+Bundle/verify & Mentioned & Specified & Normative, aligned to \texttt{glyph-bundle}/\texttt{glyph-verify} \\
+Test architecture & Basic & Full & Normative, six test families \\
+Definition of Done & Basic & Full & Normative, twelve acceptance criteria \\
+\bottomrule
+\end{longtable}
+
+
+% ======================================================================
+% PART III: BABYLON COMPILER ALIGNMENT
+% ======================================================================
+
+\section{Babylon Compiler Alignment}
+\label{sec:babylon-alignment}
+
+\subsection{Pipeline Mapping}
+
+Babylon Compiler implements an 8-stage deterministic pipeline. COL maps onto this pipeline as follows:
+
+\begin{longtable}{clp{8.5cm}}
+\toprule
+\textbf{Stage} & \textbf{Name} & \textbf{COL Involvement} \\
+\midrule
+\endfirsthead
+S0 & Ingest & Unicode normalization per active epoch's Unicode policy. Cuneiform ranges U+12000--U+123FF and U+12400--U+1247F accepted; all other non-whitespace forbidden in strict mode. \\
+S1 & Parse \& Canonicalize & COL lexer tokenizes cuneiform signs as \texttt{SIGN(cp)}. COL parser builds AST per EBNF (\cref{sec:grammar}). COL lowering module produces \texttt{glyph\_ir::IrDocument}. \\
+S2 & Expand & COL Macro Registry entries processed by \texttt{glyph-expand}. Glyph clusters expand to IR subgraphs. \\
+S3 & Embed & Standard H5 embedding via \texttt{glyph-embed}. COL-specific metadata (epoch\_id, registry digests) attached. \\
+S4 & Crystallize & Standard crystallization via \texttt{glyph-crystal}/\texttt{glyph-tic}. For epoch crystallization (evolution time), the separate crystallization layer (\cref{sec:crystallization}) applies. \\
+S5 & Gate & Obligation evaluation via \texttt{glyph-gate}. Tripolar gate logic (\cref{sec:tripolar}) extends the existing binary pass/fail to 0/LD/1 for evolution decisions. \\
+S6 & MEF & Standard MEF chain recording. Evolution-specific evidence objects appended for mutation and crystallization steps. \\
+S7 & Emit & Bundle emission via \texttt{glyph-bundle}. Extended with epoch manifest, mutation manifest, registry lineage, crystal manifest, and capsule records. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Crate Architecture}
+\label{sec:crate-arch}
+
+COL integration requires the following additions and extensions to Babylon's crate workspace:
+
+\begin{longtable}{lp{8cm}}
+\toprule
+\textbf{Crate / Module} & \textbf{Description} \\
+\midrule
+\endfirsthead
+\texttt{glyph-frontends::cuneiform} & New frontend module containing: \texttt{lexer} (cuneiform-aware tokenizer), \texttt{parser} (EBNF implementation), \texttt{lower} (AST $\to$ IR lowering), \texttt{registry\_adapter} (sign/macro resolution against digest-bound registries). \\
+\addlinespace
+\texttt{glyph-registry} (extended) & Extended with \texttt{SignRegistry} (maps cuneiform signs $\to$ roles/operators), \texttt{ProfileRegistry} (metric profiles), and \texttt{GateRegistry} (tripolar decision rules). These supplement the existing \texttt{OperatorRegistry}, \texttt{MacroRegistry}, \texttt{ObligationRegistry}, and \texttt{ObservableRegistry}. \\
+\addlinespace
+\texttt{glyph-epoch} (new) & Epoch management: epoch object construction, epoch lineage (HDAG), epoch serialization, epoch digest computation. \\
+\addlinespace
+\texttt{glyph-mutate} (new) & Mutation engine: deterministic candidate generation, metric evaluation, mutation manifest emission. \\
+\addlinespace
+\texttt{glyph-gate} (extended) & Extended with tripolar state assignment (0/LD/1), gate registry evaluation, evidence template instantiation. \\
+\addlinespace
+\texttt{glyph-crystal} (extended) & Extended with epoch crystallization: crystal formation criteria, crystal manifest emission, TIC-based convergence for language-level stabilization. \\
+\addlinespace
+\texttt{glyph-capsule} (new) & Evidence capsule management: policy enforcement, size/type constraints, hash binding, provenance tracking. \\
+\addlinespace
+\texttt{glyph-bundle} (extended) & Extended manifest schema with \texttt{epoch\_id}, five registry digests, \texttt{mutation\_lineage}, \texttt{crystal\_id}, \texttt{capsule\_ids}. \\
+\addlinespace
+\texttt{glyph-cli} (extended) & New subcommands: \texttt{evolve-registry}, \texttt{crystallize-epoch}, \texttt{inspect-epoch}. Existing \texttt{run} gains \texttt{-{}-frontend cuneiform} and \texttt{-{}-epoch} flags. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Extension Points and Invariant Preservation}
+
+\begin{requirement}[Frontend Trait Compliance]
+\label{req:frontend-trait}
+\req{3.1}\quad The cuneiform frontend \must{} implement the same interface pattern as \texttt{sanskroot} and \texttt{hanlan}: a \texttt{lex()} function returning a token stream, a \texttt{parse()} function returning an AST, and a \texttt{lower()} function producing an \texttt{IrDocument}. The CLI dispatches by matching \texttt{frontend == "cuneiform"} in \texttt{s1\_canon()}.
+\end{requirement}
+
+\begin{requirement}[No Pipeline Breakage]
+\label{req:no-breakage}
+\req{3.2}\quad All existing pipeline stages (S0--S7) \must{} continue to function identically for \texttt{sanskroot} and \texttt{hanlan} frontends after COL integration. COL-specific code paths \mustnot{} alter shared pipeline logic.
+\end{requirement}
+
+\begin{requirement}[Registry Digest Compatibility]
+\label{req:registry-compat}
+\req{3.3}\quad New registry types (Sign, Profile, Gate) \must{} use the same \texttt{compute\_digest()} function from \texttt{glyph-registry} (canonical JSON $\to$ SHA-256). Their digests \must{} be included in the \texttt{RunDescriptor.registries} struct and surfaced in the bundle manifest.
+\end{requirement}
+
+
+% ======================================================================
+% PART IV: SYNTHESIS DECISIONS
+% ======================================================================
+
+\section{Synthesis Decisions}
+\label{sec:synthesis}
+
+The following decisions were taken to resolve ambiguities and close gaps left open by the predecessor documents:
+
+\begin{enumerate}[label=\textbf{SD-\arabic*},leftmargin=3cm]
+  \item \textbf{Registry naming alignment.} The v2.0/v2.1 ``Sign Registry'' is semantically closest to Babylon's \texttt{OperatorRegistry} but requires cuneiform-specific fields (Unicode codepoint, glyph cluster pattern, transliteration alias). v3.0 defines \texttt{SignRegistry} as a new struct that \emph{extends} the operator concept with glyph-specific addressing. At serialization time, it produces a superset of \texttt{OperatorEntry} fields.
+
+  \item \textbf{Profile vs.\ Observable.} The v2.0/v2.1 ``Profile Registry'' (metric profiles, evaluation functions) maps to Babylon's \texttt{ObservableRegistry} (arity, deterministic flag, computation reference). v3.0 unifies these: profile entries are registered as observables with additional metric-weighting metadata.
+
+  \item \textbf{Gate Registry as new type.} No direct Babylon equivalent exists. v3.0 defines \texttt{GateRegistry} as a new registry type within \texttt{glyph-registry}, containing gate definitions with inputs, thresholds, tripolar mapping rules, and evidence templates.
+
+  \item \textbf{Epoch as first-class object.} Babylon's current pipeline does not have epoch management. v3.0 introduces \texttt{glyph-epoch} as a new crate. An epoch is a hashable, versionable, replayable JSON object. The run descriptor gains an \texttt{epoch\_id} field.
+
+  \item \textbf{Mutation engine as separate crate.} Evolution logic does not belong inside the frontend or the pipeline. v3.0 places it in \texttt{glyph-mutate}, invoked by dedicated CLI commands, never by \texttt{glyph run}.
+
+  \item \textbf{Spiral embedding: formalized but optional.} v2.1's spiral model ($\psi$, $\rho$, $\omega$ coordinates) is formalized as an analytical frame for mutation evaluation. It is not a required pipeline stage. Implementations \may{} use flat metric vectors instead, provided the evaluation metrics (\cref{sec:mutation-metrics}) are computed.
+
+  \item \textbf{QLOGIC-ISA: extension point, not v3.0 requirement.} The spectral opcode layer is defined as an extension interface (\cref{sec:qlogic-isa}). It is not required for the v3.0 Definition of Done.
+
+  \item \textbf{Resonance: metric contributor, not separate pipeline stage.} Resonance fitness contributes to gate evaluation metrics alongside coherence, entropy, drift, path-invariance gap, and compression. It does not constitute a separate pipeline stage.
+
+  \item \textbf{Capsule policy: explicit, bounded, not hidden.} Evidence capsules are formal boundary objects with strict policy (size, type, provenance, hash). They are never hidden channels.
+
+  \item \textbf{Backward compatibility: epoch-scoped.} Old artifacts remain verifiable under their original epoch. New epochs \mustnot{} overwrite or destroy old epochs. Forward interpretation of old sources under new epochs is \emph{not} guaranteed.
+
+  \item \textbf{Transliteration: auxiliary, not normative.} A transliteration mode \may{} exist for authoring convenience. It \must{} lower deterministically to the same normalized glyph stream as native glyph input. It is never a second language.
+
+  \item \textbf{Self-compilation stability: strong criterion for mature epochs.} A mature epoch \should{} be able to verify its own lineage. This is a quality criterion, not a v3.0 hard gate.
+\end{enumerate}
+
+
+% ======================================================================
+% PART V: MASTER SPECIFICATION
+% ======================================================================
+
+\section{System Context and Theoretical Basis}
+\label{sec:theory}
+
+\subsection{State-First Semantics}
+\label{sec:state-first}
+
+COL is founded on a state-first view of computation. A program is not primarily a text but an operator composition acting on a typed state space. Text is one possible input encoding; semantics reside in the structured transformation of state, not in the literal surface form. This enables multiple surfaces (Devanagari/Sanskroot, Chinese/HanLan, Cuneiform/COL) to coexist while preserving a single semantic core.
+
+\subsection{Babylon Compiler as Deterministic Foundry}
+
+Babylon Compiler provides the deterministic pipeline for ingestion, canonicalization, expansion, embedding, crystallization, gating, evidence generation, and bundle emission. COL uses this architecture as a \emph{foundry}: the pipeline produces canonical artifacts, manifests, and verification targets rather than opaque build outputs. All identity-bearing computation uses Q16 fixed-point arithmetic (signed 32-bit, $1/65536$ resolution) and RFC~8785 canonical JSON.
+
+\subsection{Graph-First Program Objects}
+
+A program is treated as a graph object (typed nodes and edges in \texttt{glyph\_ir::IrDocument}) rather than a linear instruction list. This graph-first view extends naturally to language evolution: language versions, registry states, and mutation histories are all graph-structured objects subject to ordering, evidence, and replay.
+
+\subsection{Three Time Scales}
+\label{sec:timescales}
+
+\begin{requirement}[Temporal Separation]
+\label{req:timescales}
+\req{5.1}\quad COL \must{} strictly separate three time scales:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Build time}: ordinary compilation under a fixed epoch and fixed registries. Deterministic and replay-stable.
+  \item \textbf{Evolution time}: generation and evaluation of candidate mutations. Occurs between builds, never during a build.
+  \item \textbf{Crystallization time}: stabilization of an accepted candidate into a new epoch. Produces a crystal manifest and a new epoch object.
+\end{enumerate}
+Without this separation, either builds become non-deterministic or evolution collapses into arbitrary manual editing.
+\end{requirement}
+
+
+% ── Unicode and Glyph Model ──────────────────────────────────────────
+
+\section{Unicode and Glyph Model}
+\label{sec:unicode}
+
+\subsection{Accepted Ranges}
+
+\begin{requirement}[Cuneiform Unicode Ranges]
+\label{req:unicode-ranges}
+\req{6.1}\quad COL defines a strict Unicode policy over cuneiform source text. The accepted ranges are:
+\begin{itemize}[nosep]
+  \item Cuneiform: U+12000--U+123FF
+  \item Cuneiform Numbers and Punctuation: U+12400--U+1247F
+  \item Early Dynastic Cuneiform: U+12480--U+1254F (optional, epoch-gated)
+  \item ASCII structural delimiters: \texttt{( ) \{ \} , ; = > < + - * / ! "}
+  \item ASCII digits: 0--9 (for numeric literals)
+  \item Whitespace: U+0020, U+000A, U+000D, U+0009
+\end{itemize}
+In strict mode, all other non-whitespace code points are forbidden unless the active run descriptor explicitly permits them. The \texttt{glyph-rd::UnicodePolicy.forbidden\_ranges} mechanism enforces this at S0.
+\end{requirement}
+
+\subsection{Normalization Policy}
+
+\begin{requirement}[Unicode Normalization]
+\label{req:unicode-norm}
+\req{6.2}\quad The source text \must{} be normalized according to the active Unicode policy in the run descriptor. The default policy is NFC. The normalized source \must{} be emitted into the bundle as \texttt{source.norm.txt}. This prevents multiple canonically equivalent byte sequences from producing divergent digests.
+\end{requirement}
+
+\subsection{Glyphs as Atomic Semantic Tokens}
+
+\begin{requirement}[Atomic Glyph Tokens]
+\label{req:atomic-glyph}
+\req{6.3}\quad A cuneiform sign is treated as an atomic glyph token, not as an alphabetic letter. In the lexer, the normative token class is \texttt{SIGN(cp)} where \texttt{cp} is the Unicode scalar value. This prevents the language from inheriting alphabetic parsing assumptions and enables glyph-level semantic addressing.
+\end{requirement}
+
+\subsection{Transliteration Mode}
+
+\begin{requirement}[Transliteration]
+\label{req:translit}
+\req{6.4}\quad A transliteration mode \may{} exist for authoring convenience and testing, but it is not normative. If provided, it \must{} lower deterministically into the same normalized glyph stream that native glyph input would have produced. Transliteration \must{} be treated as an auxiliary input layer, not as a second language.
+\end{requirement}
+
+
+% ── Operator Address Space ───────────────────────────────────────────
+
+\section{Cuneiform as an Operator Address Space}
+\label{sec:operator-space}
+
+\subsection{From Surface to Addressing}
+
+In a conventional language, a token is interpreted as a keyword, identifier, literal, or operator symbol. In COL, a glyph or glyph cluster is interpreted as an \emph{address into a registry-defined semantic space}. A sign may point to a role, an operator, or a macro expansion. This is the decisive shift from ``exotic syntax'' to ``glyph-addressed semantics.''
+
+\subsection{Non-Triviality Criteria}
+\label{sec:nontrivial-criteria}
+
+\begin{requirement}[Operator Address Space Criteria]
+\label{req:operator-criteria}
+\req{7.1}\quad COL is more than a skin if and only if at least one of the following holds:
+\begin{enumerate}[label=(\roman*),nosep]
+  \item A glyph addresses a versioned operator rather than merely replacing a keyword string.
+  \item A glyph deterministically expands into a non-trivial IR subgraph (semantic density $D > 1.0$).
+  \item A glyph participates in evidence-bearing or gate-bearing semantic transitions.
+  \item Glyph meaning is governed by digest-bound registries whose evolution remains replayable.
+\end{enumerate}
+If none of these hold, the language reduces to stylistic substitution.
+\end{requirement}
+
+\subsection{Semantic Density Metric}
+
+\begin{definition}[Semantic Density]
+The semantic density $D$ of a COL program or program fragment is defined as:
+\[
+  D \;=\; \frac{\#\text{IR nodes after expansion}}{\#\text{surface tokens before expansion}}
+\]
+A skin frontend has $D \approx 1$. COL aims for $D > 1$ through deterministic macro expansion and operator addressing while preserving replayability.
+\end{definition}
+
+
+% ── Core Grammar ─────────────────────────────────────────────────────
+
+\section{Core Grammar and Minimal Language Model}
+\label{sec:grammar}
+
+\subsection{Minimal Language Model}
+\label{sec:minimal-lang}
+
+The minimal executable subset of COL is intentionally aligned with Babylon's compact, stable IR. The language \must{} support:
+
+\begin{itemize}[nosep]
+  \item modules, functions, blocks, conditionals (if/else), return statements, assignments (let),
+  \item function calls, string/integer/boolean literals, binary arithmetic and comparison operators,
+  \item the \texttt{print} built-in.
+\end{itemize}
+
+This matches the construct set of the existing Sanskroot and HanLan frontends, ensuring that all three frontends lower to the same \texttt{IrDocument} structure.
+
+\subsection{Normative EBNF}
+\label{sec:ebnf}
+
+\begin{requirement}[EBNF Grammar]
+\label{req:ebnf}
+\req{8.1}\quad The normative MVP grammar is:
+\end{requirement}
+
+\begin{lstlisting}[language=EBNF,caption={COL EBNF Grammar v3.0}]
+program     ::= { function }
+function    ::= FN name '(' [ paramlist ] ')' '{' { statement } '}'
+paramlist   ::= name { ',' name }
+statement   ::= ifstmt | return | assignment | exprstmt
+ifstmt      ::= IF '(' expression ')' '{' { statement } '}'
+                [ ELSE '{' { statement } '}' ]
+return      ::= RETURN expression ';'
+assignment  ::= LET name '=' expression ';'
+exprstmt    ::= expression ';'
+expression  ::= comparison
+comparison  ::= addition [ ( '>' | '<' | '>=' | '<=' | '==' | '!=' ) addition ]
+addition    ::= term { ( '+' | '-' ) term }
+term        ::= factor { ( '*' | '/' ) factor }
+factor      ::= literal | name | call | '(' expression ')'
+call        ::= PRINT '(' [ arglist ] ')' | name '(' [ arglist ] ')'
+arglist     ::= expression { ',' expression }
+literal     ::= INT | STRING | BOOL
+name        ::= SIGN | SIGN name
+\end{lstlisting}
+
+The keywords \texttt{FN}, \texttt{IF}, \texttt{ELSE}, \texttt{RETURN}, \texttt{LET}, \texttt{PRINT}, \texttt{TRUE}, \texttt{FALSE} are resolved by the Sign Registry to specific cuneiform signs or sign clusters. Structural delimiters (\texttt{( ) \{ \} , ; = > < + - * /}) remain as ASCII. This grammar is intentionally conservative; future epochs may extend it through registry evolution.
+
+
+% ── Registries ────────────────────────────────────────────────────────
+
+\section{Registries}
+\label{sec:registries}
+
+\subsection{Registry Family}
+
+\begin{requirement}[Five Registry Types]
+\label{req:registries}
+\req{9.1}\quad COL requires the following digest-bound registries:
+\end{requirement}
+
+\begin{enumerate}[label=\textbf{R\arabic*}]
+  \item \textbf{Sign Registry} (\texttt{SignRegistry}): Maps cuneiform signs or sign sequences to reserved roles (FN, IF, ELSE, RETURN, LET, PRINT, TRUE, FALSE) and operator identities. Each entry contains: sign codepoint(s), role or operator ID, version, optional transliteration alias.
+
+  \item \textbf{Macro Registry} (\texttt{MacroRegistry}): Maps glyph patterns to deterministic expansion templates. Each entry contains: pattern, precedence, expansion graph (nodes + edges as JSON), bindings. Uses the existing \texttt{glyph-expand} engine with precedence resolution (lowest value wins, ties broken lexicographically).
+
+  \item \textbf{Profile Registry}: Defines metric profiles and evaluation functions for mutation assessment. Entries specify metric identifiers, computation references, weighting vectors, and axis mappings. Implemented as an extension of \texttt{ObservableRegistry}.
+
+  \item \textbf{Obligation Registry} (\texttt{ObligationRegistry}): Defines required proof objects and admissibility conditions. Uses the existing Babylon \texttt{ObligationEntry} structure with class (hard/soft), predicate, threshold, and axis index.
+
+  \item \textbf{Gate Registry} (\texttt{GateRegistry}): Defines decision rules for the tripolar gate layer. Each entry contains: gate ID, version, input metrics, threshold functions, tripolar mapping rule (metric ranges $\to$ \{0, LD, 1\}), and evidence template.
+\end{enumerate}
+
+\subsection{Sign Registry Detail}
+\label{sec:sign-registry}
+
+\begin{requirement}[Minimal Sign Set]
+\label{req:sign-set}
+\req{9.2}\quad The epoch-0 Sign Registry \must{} define at minimum the following role mappings:
+\end{requirement}
+
+\begin{longtable}{lllp{4.5cm}}
+\toprule
+\textbf{Role} & \textbf{Codepoint(s)} & \textbf{Translit.} & \textbf{Babylon Equivalent} \\
+\midrule
+\endfirsthead
+FN       & U+12000 (\texttt{A})       & \texttt{a}     & \texttt{function} \\
+IF       & U+12157 (\texttt{TUKUL})   & \texttt{tukul} & \texttt{if} \\
+ELSE     & U+12038 (\texttt{BAL})     & \texttt{bal}   & \texttt{else} \\
+RETURN   & U+1202D (\texttt{AŠ})      & \texttt{aš}    & \texttt{return} \\
+LET      & U+120FB (\texttt{NAM})     & \texttt{nam}   & \texttt{let} \\
+PRINT    & U+1214E (\texttt{TA})      & \texttt{ta}    & \texttt{print} \\
+TRUE     & U+12079 (\texttt{DU})      & \texttt{du}    & \texttt{true} \\
+FALSE    & U+12080 (\texttt{DUG})     & \texttt{dug}   & \texttt{false} \\
+\bottomrule
+\end{longtable}
+
+\begin{rationale}
+The specific codepoint assignments are provisional for epoch-0. They serve as normative test fixtures. Future epochs may reassign signs through the mutation/crystallization process, provided the reassignment satisfies all gate criteria and produces a valid crystal.
+\end{rationale}
+
+\subsection{Digest Binding}
+
+\begin{requirement}[Registry Digest Binding]
+\label{req:digest-binding}
+\req{9.3}\quad All active registries \must{} be bound by SHA-256 digest in the run descriptor and surfaced in emitted manifests. The digest is computed by: serialize registry to canonical JSON (RFC~8785), then SHA-256 hash. This uses the existing \texttt{glyph\_registry::compute\_digest()} function.
+\end{requirement}
+
+\subsection{Registry Evolution}
+
+\begin{requirement}[Registry Immutability During Build]
+\label{req:reg-immutable}
+\req{9.4}\quad Registries \may{} evolve between language epochs. A build \mustnot{} reinterpret itself under a moving registry target. Registry mutation belongs to evolution time (\cref{sec:timescales}), not to build time.
+\end{requirement}
+
+
+% ── Language Epochs ───────────────────────────────────────────────────
+
+\section{Language Epochs}
+\label{sec:epochs}
+
+\subsection{Definition}
+
+\begin{definition}[Language Epoch]
+A language epoch $E_t$ is the frozen, reproducible semantic state of COL at a particular point in its lineage. It includes the active registry digests, policy set, lineage metadata, and crystallization status. An epoch is a hashable, versionable, replayable JSON object.
+\end{definition}
+
+\subsection{Epoch Object}
+
+\begin{requirement}[Epoch Structure]
+\label{req:epoch-struct}
+\req{10.1}\quad An epoch object \must{} contain at minimum:
+\end{requirement}
+
+\begin{lstlisting}[language=JSON,caption={Epoch Object Schema}]
+{
+  "epoch_id": "col-epoch-NNNN",
+  "parent_epoch": "col-epoch-MMMM | null",
+  "sign_registry_digest": "<sha256>",
+  "macro_registry_digest": "<sha256>",
+  "profile_registry_digest": "<sha256>",
+  "obligation_registry_digest": "<sha256>",
+  "gate_registry_digest": "<sha256>",
+  "policy_set": { ... },
+  "lineage": { "parents": [...], "depth": N },
+  "created_at": "<ISO 8601>",
+  "epoch_digest": "<sha256 of canonical self>"
+}
+\end{lstlisting}
+
+The \texttt{epoch\_digest} is computed by serializing the epoch object with \texttt{epoch\_digest=""} to canonical JSON and hashing with SHA-256, analogous to \texttt{RunDescriptor.compute\_run\_id()}.
+
+\subsection{Replay Stability Across Epochs}
+
+\begin{requirement}[Replay Stability]
+\label{req:replay-stability}
+\req{10.2}\quad Replay stability requires that earlier epochs remain reconstructible and verifiable as earlier epochs. An artifact emitted under $E_t$ \must{} remain verifiable under $E_t$'s registry digests, even if $E_{t+1}$ exists. New epochs \mustnot{} overwrite or destroy old epoch objects.
+\end{requirement}
+
+
+% ── Mutation and Evolution ────────────────────────────────────────────
+
+\section{Mutation Engine}
+\label{sec:mutation}
+
+\subsection{Candidate Generation}
+
+\begin{requirement}[Deterministic Candidate Generation]
+\label{req:candidate-gen}
+\req{11.1}\quad The mutation engine generates candidates from a given epoch $E_t$. A candidate \may{} consist of: a new glyph-role binding, a modified macro expansion, a changed gate threshold, a new profile weighting, or another admissible registry transformation. Candidate generation \must{} be deterministic under the governing seed, run descriptor, and policy context. An identical evolution run under identical conditions \must{} produce the same candidates in the same order.
+\end{requirement}
+
+\subsection{Evaluation Metrics}
+\label{sec:mutation-metrics}
+
+\begin{requirement}[Structured Evaluation]
+\label{req:eval-metrics}
+\req{11.2}\quad Candidate evaluation \must{} use a structured metric space, not a single scalar score. The minimum metric set is:
+\begin{itemize}[nosep]
+  \item \textbf{Coherence} ($\kappa$): internal consistency of the candidate registry set.
+  \item \textbf{Entropy} ($H$): information-theoretic measure of registry distribution.
+  \item \textbf{Drift} ($\delta$): semantic distance from the parent epoch.
+  \item \textbf{Path-Invariance Gap} ($\pi$): discrepancy between alternative expansion paths.
+  \item \textbf{Compression} ($\gamma$): semantic density gain from the mutation.
+  \item \textbf{Resonance Fitness} ($\rho_f$): coherence relative to the active resonance model (\cref{sec:resonance}).
+  \item \textbf{Stability} ($\sigma$): convergence behavior under repeated evaluation.
+\end{itemize}
+All metrics \must{} be computed in Q16 fixed-point arithmetic to preserve determinism.
+\end{requirement}
+
+\subsection{Mutation Formalization}
+
+A mutation is a directed transformation along a semantic gradient:
+\[
+  M_{t+1} = M_t + \Delta(\nabla\psi, \rho, \omega, \mathit{RD})
+\]
+where $\psi$ denotes semantic weighting, $\rho$ coherence/resonance density, and $\omega$ phase ordering. The direction depends on seed-, policy-, and registry-bound rules, not on uncontrolled randomness.
+
+\subsection{Mutation Manifest}
+
+\begin{requirement}[Mutation Manifest]
+\label{req:mutation-manifest}
+\req{11.3}\quad Every evolution run \must{} emit a mutation manifest documenting: source epoch, candidate set, active search and gate parameters, evaluation results per candidate, accept/reject/latent decision per candidate, and the newly generated epoch ID (if any). The manifest \must{} be hashable and includable in the bundle.
+\end{requirement}
+
+
+% ── Tripolar Gate Logic ──────────────────────────────────────────────
+
+\section{Tripolar Gate Logic}
+\label{sec:tripolar}
+
+\subsection{Three Decision States}
+
+\begin{requirement}[Tripolar States]
+\label{req:tripolar-states}
+\req{12.1}\quad COL defines a tripolar decision layer with three states:
+\begin{description}[nosep,leftmargin=2cm]
+  \item[\texttt{0}] Reject. The candidate is inadmissible, unstable, or incompatible with active obligations.
+  \item[\texttt{LD}] Latent Decision. The candidate is neither clearly accepted nor clearly rejected. It remains in a controlled intermediate state pending further evaluation or crystallization.
+  \item[\texttt{1}] Accept. The candidate satisfies all active gate and obligation criteria and is admitted to crystallization.
+\end{description}
+The latent state \texttt{LD} is indispensable because language mutation often produces structures that are promising yet not ready for adoption.
+\end{requirement}
+
+\subsection{Gate Semantics}
+
+A gate does not merely approve or deny; it classifies the current semantic maturity of a candidate. This enables disciplined transition from mutation to crystallization without forcing premature acceptance or premature deletion.
+
+\subsection{Gate Registry Integration}
+
+\begin{requirement}[Gate Registry]
+\label{req:gate-registry}
+\req{12.2}\quad Gate behavior \must{} be registry-defined, not hardcoded. Gate definitions include: input metrics, threshold functions, tripolar mapping rules, and evidence templates. Gate outcomes \must{} be surfaced in manifests or evidence objects. The Gate Registry \must{} be digest-bound in the run descriptor.
+\end{requirement}
+
+\subsection{Gate Object}
+
+A gate evaluation produces a gate object:
+\begin{lstlisting}[language=JSON,caption={Gate Object Schema}]
+{
+  "candidate_id": "<hash>",
+  "gate_id": "<registry ref>",
+  "metrics": {
+    "coherence": <Q16>,
+    "drift": <Q16>,
+    "compression": <Q16>,
+    "resonance_fitness": <Q16>,
+    "stability": <Q16>
+  },
+  "tripolar_state": "0 | LD | 1",
+  "evidence_digest": "<sha256>"
+}
+\end{lstlisting}
+
+
+% ── Contraction, Fixpoints, Condensation ─────────────────────────────
+
+\section{Contraction, Fixpoints, and Condensation}
+\label{sec:contraction}
+
+\subsection{Contractive Update Principle}
+
+\begin{requirement}[Contraction]
+\label{req:contraction}
+\req{13.1}\quad COL assumes that meaningful stabilization requires local or regional contraction. If updates in a relevant region satisfy
+\[
+  d(T(x), T(y)) \;\leq\; c \cdot d(x, y), \qquad 0 \leq c < 1,
+\]
+then repeated application of admissible updates tends toward a stable state. The language does not require global contraction of all imaginable mutations, only contraction in those spaces where stabilization is claimed.
+\end{requirement}
+
+\subsection{Banach Fixpoint Interpretation}
+
+A candidate that converges to a unique fixed point under admissible update rules possesses a stronger claim to stability than a candidate selected only once. A fixpoint is not metaphysical truth but a technically sufficient anchor for crystallization.
+
+\begin{requirement}[Fixpoint Evidence]
+\label{req:fixpoint}
+\req{13.2}\quad For any candidate presented for crystallization, the system \must{} demonstrate that repeated evaluation under the active update rules converges within a bounded number of iterations. The convergence trace \must{} be recorded and includable in the evidence chain.
+\end{requirement}
+
+\subsection{Micro-Dynamics Convergence}
+
+Language epochs frequently emerge through many small local shifts: a registry binding changes, a macro is refined, a gate rule is tightened. COL \must{} demonstrate not only global convergence but also local convergence of individual micro-dynamic steps.
+
+\subsection{Condensation}
+
+\begin{definition}[Condensation]
+Condensation is the transition from a distributed, still-moving candidate structure to a stabilized semantic form. A condensed state is characterized by: (a)~its core meanings no longer oscillate, (b)~its lowering is stable, (c)~its gate states no longer flip between LD and 1, (d)~its evidence structure is complete and replay-stable.
+\end{definition}
+
+
+% ── HDAG Ordering ────────────────────────────────────────────────────
+
+\section{HDAG Ordering and Invariance}
+\label{sec:hdag}
+
+\subsection{Ordered Language Lineage}
+
+\begin{requirement}[Acyclic Lineage]
+\label{req:acyclic}
+\req{14.1}\quad Language evolution \must{} be representable as a directed acyclic graph (DAG). An epoch \may{} have one or more parent epochs, but cycles that undermine semantic ordering are forbidden. Without acyclicity, it would be impossible to determine which registry lineage governs an artifact.
+\end{requirement}
+
+\subsection{Cross-Epoch Invariants}
+
+\begin{requirement}[Invariant Preservation]
+\label{req:invariant-preservation}
+\req{14.2}\quad The following properties \must{} survive across all epoch transitions:
+\begin{itemize}[nosep]
+  \item Deterministic lowering (Invariant~\ref{inv:determinism})
+  \item Digest-bound registries (Invariant~\ref{inv:registry-digest})
+  \item Bundle and manifest compatibility (Invariant~\ref{inv:babylon})
+  \item Replay and verification of already-emitted artifacts (Invariant~\ref{inv:replay})
+\end{itemize}
+Additional invariants \may{} be imposed per evolution regime, including preservation of specific macro operator identities, path equivalence stability, and bounded semantic drift per epoch.
+\end{requirement}
+
+\subsection{Self-Compilation Stability}
+
+\begin{requirement}[Self-Verification]
+\label{req:self-verify}
+\req{14.3}\quad A mature epoch \should{} be able to verify its own lineage: its active registries, the relevant subset of earlier epochs, and the mutation/crystallization chain that produced it. An epoch that cannot process the conditions of its own evolution is structurally fragile.
+\end{requirement}
+
+
+% ── Crystallization Layer ────────────────────────────────────────────
+
+\section{Crystallization Layer}
+\label{sec:crystallization}
+
+\subsection{Mutation as Observation Stream}
+
+Candidate mutations are first treated as an observation stream:
+\[
+  O = (m_1, m_2, \ldots, m_n)
+\]
+where each $m_i$ is an evidence-capable mutation unit. The system evaluates repeated structures, regularities, and stabilization tendencies before admitting a new epoch.
+
+\subsection{Crystal Formation Criteria}
+
+\begin{requirement}[Crystal Formation]
+\label{req:crystal-formation}
+\req{15.1}\quad A candidate \may{} be recognized as a crystal only if:
+\begin{enumerate}[label=(\roman*),nosep]
+  \item it possesses a complete evidence chain from candidate generation through gate decision,
+  \item its registry digests are stable (no further drift under repeated evaluation),
+  \item its update behavior is convergent or contractively stabilized,
+  \item it passes bundle verification under replay.
+\end{enumerate}
+\end{requirement}
+
+\subsection{Crystal Manifest}
+
+\begin{requirement}[Crystal Manifest]
+\label{req:crystal-manifest}
+\req{15.2}\quad A crystal manifest \must{} bind:
+\begin{itemize}[nosep]
+  \item Crystal ID (content hash of the crystal manifest itself)
+  \item Parent epoch ID
+  \item All five registry digests
+  \item TIC-related stability information (convergence metrics)
+  \item Gate decision evidence digest
+  \item Mutation manifest reference
+\end{itemize}
+\end{requirement}
+
+\subsection{MEF and Evidence Chain}
+
+Every phase of epoch formation \must{} be recorded as a tamper-evident step in the MEF chain:
+which candidate set was evaluated, which gates were applied, which states were 0/LD/1, which registry digests were adopted, and which manifest binds the resulting epoch. This uses Babylon's existing \texttt{glyph-mef::MefChain} with evolution-specific \texttt{OperatorEvidence} entries.
+
+
+% ── Resonance Layer ──────────────────────────────────────────────────
+
+\section{Resonance Layer}
+\label{sec:resonance}
+
+\subsection{Operators as Resonance Network}
+
+The resonance layer treats glyph operators, macro clusters, and registry states as a structured network with phase-like coupling relations. This does not replace deterministic logic; it adds an analytical view for evaluating coherence beyond syntax alone.
+
+\subsection{Resonance Gating}
+
+\begin{requirement}[Resonance as Metric]
+\label{req:resonance-metric}
+\req{16.1}\quad Resonance fitness \may{} be incorporated into gate decisions as one of the evaluation metrics (\cref{sec:mutation-metrics}). A candidate \may{} be rejected, held latent, or accepted depending on how coherent it is relative to the active resonance model. Example mapping:
+\begin{itemize}[nosep]
+  \item Low resonance $\to$ contributes toward Reject (\texttt{0})
+  \item Medium resonance with high drift $\to$ contributes toward Latent (\texttt{LD})
+  \item High resonance with stable path $\to$ contributes toward Accept (\texttt{1})
+\end{itemize}
+Resonance gating \mustnot{} override hard invariants.
+\end{requirement}
+
+\subsection{Spectral Compression}
+
+When multiple operator paths form a stable resonance cluster, they \may{} be compressed into a new macro operator, provided path-invariance and replay conditions are preserved. This constitutes an additional source of semantic densification beyond explicit rule design.
+
+
+% ── Spiral Embedding (Optional) ──────────────────────────────────────
+
+\section{Spiral Embedding Model (Optional)}
+\label{sec:spiral}
+
+\subsection{Spiral Coordinates}
+
+For implementations that support it, operators, registry candidates, and language states \may{} be embedded into a spiral coordinate space with at least three axes:
+\begin{itemize}[nosep]
+  \item $\psi$: semantic weighting,
+  \item $\rho$: coherence or resonance density,
+  \item $\omega$: phase or rhythmic ordering.
+\end{itemize}
+
+These coordinates serve as evaluation axes for mutation candidates. They are computed in Q16 fixed-point and stored as part of the mutation evaluation record.
+
+\subsection{Convergence Conditions}
+
+A mutation is admissible only if it satisfies explicit convergence bounds: bounded drift, coherent registry relations, sufficient resonance stability, reproducible lowering, and gate compatibility. These bounds \may{} be expressed as constraints on the spiral coordinates.
+
+\begin{rationale}
+The spiral model was introduced in v2.1 as an alternative to flat metric vectors. v3.0 preserves it as an optional analytical frame. Implementations that prefer flat metric vectors \may{} compute the same metrics without spiral embedding, provided all evaluation metrics from \cref{sec:mutation-metrics} are available.
+\end{rationale}
+
+
+% ── QLOGIC-ISA (Optional Extension) ─────────────────────────────────
+
+\section{QLOGIC-ISA Layer (Optional Extension)}
+\label{sec:qlogic-isa}
+
+\subsection{Spectral Opcodes}
+
+COL \may{} optionally access a second semantics layer in which macros or operator clusters reference spectral opcodes. Candidate opcode classes include: \texttt{OSC}, \texttt{HARM}, \texttt{MIX}, \texttt{GATE}, \texttt{KICK\_U}, \texttt{KICK\_V}, \texttt{CONDENSE}, \texttt{MEASURE}, \texttt{DECIDE}, \texttt{LEARN}.
+
+\subsection{Multi-Stage Addressing}
+
+The multi-stage chain is:
+\[
+  \text{Glyph} \;\to\; \text{Registry Role} \;\to\; \text{Macro Subgraph} \;\to\; \text{ISA Opcode (optional)}
+\]
+The surface remains compact while internal semantics can be arbitrarily deep.
+
+\subsection{Path Invariance}
+
+\begin{requirement}[ISA Path Invariance]
+\label{req:isa-path-inv}
+\req{18.1}\quad If different glyph sequences or macro expansions converge on the same condensed semantic state, this \must{} hold only under explicit path invariance. Ambiguity is permitted only where it resolves to the same verifiable form.
+\end{requirement}
+
+\begin{rationale}
+The QLOGIC-ISA layer is not required for v3.0 Definition of Done. It is preserved as a designed extension point for future epochs that need runtime-close operator semantics beyond AST-level IR nodes.
+\end{rationale}
+
+
+% ── Evidence Capsules ────────────────────────────────────────────────
+
+\section{Evidence Capsules}
+\label{sec:capsules}
+
+\subsection{Definition}
+
+\begin{definition}[Evidence Capsule]
+An evidence capsule is a declared, bounded, manifest-bound data object transported through the compilation chain. It is not a hidden channel and not an unstructured comment. It is part of the verifiable machine state.
+\end{definition}
+
+\subsection{Capsule Policy}
+
+\begin{requirement}[Capsule Policy]
+\label{req:capsule-policy}
+\req{19.1}\quad Every capsule \must{} be governed by an explicit policy defining:
+\begin{itemize}[nosep]
+  \item Maximum size (in bytes)
+  \item Admissible content classes (context-anchor, commitment, boundary-declaration, attachment)
+  \item Provenance requirements
+  \item Hash binding method
+  \item Emission constraints
+\end{itemize}
+Capsules are only admissible if their existence and content do not destroy replay stability.
+\end{requirement}
+
+\subsection{Capsule Object}
+
+\begin{lstlisting}[language=JSON,caption={Capsule Object Schema}]
+{
+  "capsule_id": "<sha256>",
+  "capsule_type": "context-anchor | commitment | boundary | attachment",
+  "size_limit": 2048,
+  "content_digest": "<sha256>",
+  "manifest_digest": "<sha256>",
+  "policy_ref": "<registry ref>",
+  "provenance": "<origin chain>"
+}
+\end{lstlisting}
+
+\subsection{Verify and Replay}
+
+\begin{requirement}[Capsule Verification]
+\label{req:capsule-verify}
+\req{19.2}\quad Capsules \must{} be fully manifested in the bundle. Verification \must{} check: (a)~capsule presence, (b)~hash match with manifest, (c)~policy binding validity, (d)~replay stability of the build with the capsule.
+\end{requirement}
+
+
+% ── IR and Lowering Contract ─────────────────────────────────────────
+
+\section{Canonical IR and Lowering Contract}
+\label{sec:ir-contract}
+
+\subsection{Single Canonical Target}
+
+\begin{requirement}[IR Target]
+\label{req:ir-target}
+\req{20.1}\quad Every valid COL source \must{} lower into a single \texttt{glyph\_ir::IrDocument}. The IR uses the existing schema version \texttt{1.0.0} with the following node kinds: \texttt{Module}, \texttt{Function}, \texttt{Block}, \texttt{If}, \texttt{Return}, \texttt{Call}, \texttt{Assignment}, \texttt{Literal}, \texttt{BinaryOp}, \texttt{Identifier}. Edge kinds: \texttt{Contains}, \texttt{Next}, \texttt{Condition}, \texttt{ThenBranch}, \texttt{ElseBranch}, \texttt{Argument}, \texttt{Target}, \texttt{Value}, \texttt{Left}, \texttt{Right}, \texttt{CalleeRef}.
+\end{requirement}
+
+\subsection{Extended Metadata}
+
+\begin{requirement}[Evolution Metadata]
+\label{req:evolution-metadata}
+\req{20.2}\quad COL-emitted IR documents or their bundle metadata \must{} include:
+\begin{itemize}[nosep]
+  \item \texttt{epoch\_id}
+  \item \texttt{sign\_registry\_digest}, \texttt{macro\_registry\_digest}, \texttt{profile\_registry\_digest}, \texttt{obligation\_registry\_digest}, \texttt{gate\_registry\_digest}
+  \item \texttt{mutation\_lineage} (reference to parent epoch chain)
+  \item \texttt{crystal\_id} (if crystallized)
+  \item \texttt{capsule\_ids} (list of active capsule references)
+\end{itemize}
+These fields \may{} be stored in the \texttt{IrNode.properties} map of the root Module node or as separate manifest entries. They \must{} be deterministically produced and hashable.
+\end{requirement}
+
+\subsection{Stable Lowering}
+
+\begin{requirement}[Stable Lowering Chain]
+\label{req:stable-lowering}
+\req{20.3}\quad Stable lowering means:
+\begin{enumerate}[label=(\roman*),nosep]
+  \item The same glyph sequence under the same registry configuration produces the same token sequence.
+  \item The same token sequence produces the same parse tree.
+  \item The same parse tree produces the same IR nodes, edges, and ordering.
+  \item The same metadata produces the same manifest digest.
+\end{enumerate}
+Evolvability \mustnot{} cause a previously fixed build to receive a different lowering retroactively.
+\end{requirement}
+
+\subsection{Deterministic ID Generation}
+
+\begin{requirement}[Content-Hash IDs]
+\label{req:content-hash}
+\req{20.4}\quad Node identifiers \must{} be generated using the content-hash scheme: \texttt{content\_hash\_node\_id(kind, name, scope\_path)} $\to$ SHA-256 digest. This is the existing scheme in Babylon's \texttt{glyph\_canon::content\_hash\_node\_id()}.
+\end{requirement}
+
+\subsection{Backward Compatibility}
+
+\begin{requirement}[Epoch-Scoped Compatibility]
+\label{req:backward-compat}
+\req{20.5}\quad A new epoch \may{} introduce new constructs, macros, gates, and registry structures without destroying the verifiability of earlier artifacts. Backward compatibility means:
+\begin{itemize}[nosep]
+  \item Old artifacts remain verifiable under their original epoch.
+  \item Old epochs remain available as objects.
+  \item Old digests and bundles remain reconstructible.
+  \item New epochs \may{} reference but \mustnot{} overwrite earlier epochs.
+\end{itemize}
+\end{requirement}
+
+
+% ── Integration ──────────────────────────────────────────────────────
+
+\section{Integration into Babylon Compiler}
+\label{sec:integration}
+
+\subsection{Frontend Architecture}
+
+\begin{requirement}[Frontend Modules]
+\label{req:frontend-modules}
+\req{21.1}\quad The cuneiform frontend \must{} provide the following modules under \texttt{glyph-frontends::cuneiform}:
+\begin{description}[nosep,leftmargin=3cm]
+  \item[\texttt{lexer}] Unicode-aware tokenization of cuneiform signs and structural tokens. Token type: \texttt{SIGN(cp: u32)}.
+  \item[\texttt{parser}] AST construction per the EBNF (\cref{sec:ebnf}).
+  \item[\texttt{lower}] Deterministic transformation of AST to \texttt{IrDocument} using \texttt{content\_hash\_node\_id}.
+  \item[\texttt{registry\_adapter}] Resolution of sign codepoints to roles and macro patterns against the active Sign and Macro registries.
+\end{description}
+\end{requirement}
+
+\subsection{CLI Extensions}
+
+\begin{requirement}[CLI Commands]
+\label{req:cli}
+\req{21.2}\quad The \texttt{glyph-cli} \must{} be extended with:
+\end{requirement}
+
+\begin{lstlisting}[caption={COL CLI Surface}]
+# Standard build (build time)
+glyph run --frontend cuneiform --epoch <epoch-id> --rd run.json -i input.col -o ./bundle
+
+# Verification
+glyph verify --bundle ./bundle
+
+# Dump IR
+glyph dump-ir --frontend cuneiform -i input.col
+
+# Evolution (evolution time)
+glyph evolve-registry --epoch <epoch-id> --rd run.json --seed <seed>
+
+# Crystallization (crystallization time)
+glyph crystallize-epoch --candidate <candidate-id> --epoch <parent-epoch>
+
+# Inspection
+glyph inspect-epoch --epoch <epoch-id>
+\end{lstlisting}
+
+\subsection{Bundle Format v3.0}
+
+\begin{requirement}[Extended Bundle]
+\label{req:bundle-format}
+\req{21.3}\quad In addition to the standard bundle artifacts (\texttt{source.norm.txt}, \texttt{ir.json}, \texttt{trace.json}, \texttt{manifest.json}, \texttt{mef.json}, \texttt{evidence.json}), the COL bundle \must{} carry:
+\begin{itemize}[nosep]
+  \item \texttt{epoch-manifest.json} --- the active epoch object
+  \item \texttt{mutation-manifest.json} --- if the build is an evolution run
+  \item \texttt{registry-lineage.json} --- directed lineage from epoch-0 to current
+  \item \texttt{crystal-manifest.json} --- if a crystal was produced
+  \item \texttt{proof-objects/} --- directory of gate and fixpoint evidence
+  \item \texttt{capsules/} --- directory of evidence capsule objects
+\end{itemize}
+All additional files \must{} be included in the manifest's \texttt{artifact\_digests} map.
+\end{requirement}
+
+
+% ── Test Architecture ────────────────────────────────────────────────
+
+\section{Test Architecture}
+\label{sec:tests}
+
+\begin{requirement}[Six Test Families]
+\label{req:test-families}
+\req{22.1}\quad The following test families are normative:
+\end{requirement}
+
+\subsection{T1: Determinism Tests}
+
+Identical source + identical run descriptor + identical epoch \must{} produce identical: IR digest, manifest digest, trace digest, crystal references, and gate decision objects. This is the foundational test: if it fails, nothing else matters.
+
+\subsection{T2: Evolution Tests}
+
+The system \must{} demonstrate: (a)~generation of a candidate from a base epoch, (b)~evaluation of that candidate, (c)~formation of a new epoch, (d)~proof that the original epoch remains replay-stable.
+
+\subsection{T3: Tripolar Gate Tests}
+
+For defined candidate sets, the system \must{} deterministically assign states \texttt{0}, \texttt{LD}, or \texttt{1}. Boundary cases and repeated evaluation runs are required. The latent state \texttt{LD} \mustnot{} become a residual category; it \must{} be a controlled intermediate state reproducible across runs.
+
+\subsection{T4: Contraction and Fixpoint Tests}
+
+For defined update families, the system \must{} show: (a)~repeated updates converge, (b)~resulting states become unique, (c)~drift remains within defined bounds.
+
+\subsection{T5: Crystal Tests}
+
+When an epoch is declared a crystal: (a)~the evidence chain \must{} be complete, (b)~registry digests \must{} be correctly bound, (c)~the crystal ID \must{} be stably reproducible, (d)~\texttt{glyph verify} \must{} reconstruct the crystal object.
+
+\subsection{T6: Capsule Tests}
+
+If capsules are enabled: (a)~size and policy bounds \must{} be enforced, (b)~hash binding \must{} be correct, (c)~replay stability \must{} hold with capsules present, (d)~violation cases (oversized, wrong type, missing provenance) \must{} be rejected.
+
+\subsection{Normative Test Vectors}
+
+\begin{requirement}[Minimum Test Vectors]
+\label{req:test-vectors}
+\req{22.2}\quad At least three test programs \must{} serve as normative reference cases:
+\end{requirement}
+
+\begin{description}[leftmargin=2cm]
+  \item[TV1] \textbf{Minimal print.} A single function calling \texttt{print} with a string literal. Must produce: Module, Function, Block, Call, Literal nodes. Verify: deterministic IR digest.
+
+  \item[TV2] \textbf{Conditional.} A function with if/else and a comparison. Must produce: If, BinaryOp, ThenBranch, ElseBranch edges. Verify: deterministic IR digest.
+
+  \item[TV3] \textbf{Macro expansion.} A glyph or glyph cluster that expands to a non-trivial IR subgraph. Must demonstrate $D > 1.0$. Verify: expansion record in trace, deterministic post-expansion digest.
+\end{description}
+
+
+% ── Definition of Done ───────────────────────────────────────────────
+
+\section{Definition of Done}
+\label{sec:dod}
+
+\begin{requirement}[Acceptance Criteria]
+\label{req:dod}
+\req{23.1}\quad Implementation of COL v3.0 is considered complete only if \emph{all} of the following hold:
+\end{requirement}
+
+\begin{enumerate}[label=\textbf{DoD-\arabic*},leftmargin=2.5cm]
+  \item \textbf{Frontend complete.} COL sources compile through Babylon under a \texttt{cuneiform} frontend. Glyphs are deterministically tokenized. Parsing and lowering produce a valid \texttt{IrDocument}. The command \texttt{glyph run -{}-frontend cuneiform} emits IR and a bundle. The command \texttt{glyph verify} passes.
+
+  \item \textbf{Deterministic lowering.} Identical inputs produce identical IR bytes, manifest digests, and trace digests across repeated runs. T1 tests pass.
+
+  \item \textbf{Registry binding.} All five registries (Sign, Macro, Profile, Obligation, Gate) are digest-bound in the run descriptor and surfaced in the manifest. Changing a registry entry changes the digest.
+
+  \item \textbf{Epoch system operational.} At least two language epochs exist as digest-bound objects. Each epoch possesses its own registry set. Digests are reproducible. Earlier epochs are not destroyed by later ones.
+
+  \item \textbf{Mutation engine operational.} At least one non-trivial registry mutation has been deterministically generated, evaluated, and transformed into a new epoch. Purely manual registry edits do not satisfy this criterion.
+
+  \item \textbf{Tripolar gating operational.} Mutations and candidates are deterministically classified into \texttt{0}, \texttt{LD}, or \texttt{1}. The state \texttt{LD} has a functional role in the crystallization chain. T3 tests pass.
+
+  \item \textbf{Crystallization demonstrated.} At least one mutation has been accepted and crystallized into a stable language epoch. The crystal manifest is complete: candidate provenance, gate decision, registry digests, verify capability. T5 tests pass.
+
+  \item \textbf{Non-triviality proved.} At least one glyph or glyph cluster expands into a non-trivial, evidence-bearing operator subgraph with $D > 1.0$. This expansion is visible in the bundle, manifest, and verify process. TV3 passes.
+
+  \item \textbf{Bundle complete.} Bundles emit all required artifacts: normalized source, IR, trace, manifest, MEF chain, evidence, epoch manifest, registry lineage. Optional: mutation manifest, crystal manifest, capsules.
+
+  \item \textbf{Replay stable.} An artifact produced under epoch $E_0$ remains verifiable after $E_1$ exists. T2 tests pass.
+
+  \item \textbf{Contraction demonstrated.} At least one stabilizing candidate path contracts toward a reproducible fixpoint. T4 tests pass.
+
+  \item \textbf{All test families pass.} T1--T6 and test vectors TV1--TV3 pass without exception.
+\end{enumerate}
+
+
+% ======================================================================
+% PART VI: OBSOLESCENCE RATIONALE
+% ======================================================================
+
+\section{Obsolescence of Predecessor Documents}
+\label{sec:obsolescence}
+
+The three predecessor documents are rendered historically obsolete by this specification for the following reasons:
+
+\begin{description}[style=nextline,leftmargin=1cm]
+  \item[v1.0 (COL\_de, German outline)]
+  All content is absorbed. Placeholders in appendices A--F are replaced by concrete schemas, EBNF, registry definitions, test vectors, and JSON examples. The static model (no evolution) is superseded by the full epoch/mutation/crystallization framework. The German-language formulation is unified with the English normative text.
+
+  \item[v2.0 (English specification)]
+  All invariants, design principles, registry taxonomy, epoch model, mutation engine, tripolar gate logic, contraction/fixpoint analysis, crystallization layer, resonance layer, evidence capsules, IR contract, integration plan, test architecture, and Definition of Done are absorbed verbatim or strengthened. The discursive discussion and conclusion sections are absorbed into rationale blocks. Example objects (epoch, gate, capsule) are refined and schema-specified.
+
+  \item[v2.1 (Keilschrift++)]
+  All extensions---spiral embedding, QLOGIC-ISA, detailed Banach-fixpoint interpretation, micro-dynamics convergence, HDAG ordering, self-compilation stability, MEF/evidence chain for crystallization, RSS resonance with phase/twist, tightened DoD---are absorbed. The spiral model and QLOGIC-ISA are preserved as optional extension points rather than mandatory requirements, resolving the over-specification risk in v2.1. The detailed German-language rationale for cultural/historical positioning of cuneiform is absorbed into the invariant framework (cuneiform is technically relevant only as an operator address space, not as cultural artifact).
+\end{description}
+
+No normative content from any predecessor document is lost. Every invariant is preserved or strengthened. Every concrete artifact (EBNF, epoch schema, gate schema, capsule schema, test vectors) is present in this document. The three predecessors serve only as historical evolution records of the specification process.
+
+
+% ======================================================================
+% APPENDICES
+% ======================================================================
+
+\appendix
+
+\section{Epoch Object Example}
+\label{app:epoch}
+
+\begin{lstlisting}[language=JSON]
+{
+  "epoch_id": "col-epoch-0001",
+  "parent_epoch": null,
+  "sign_registry_digest": "a3f8...c4d1",
+  "macro_registry_digest": "b7e2...91f0",
+  "profile_registry_digest": "c1d4...e3a2",
+  "obligation_registry_digest": "d9f0...b1c3",
+  "gate_registry_digest": "e2a1...d4f5",
+  "policy_set": {
+    "unicode_normalization": "NFC",
+    "strict_mode": true,
+    "seed_mode": "fixed",
+    "seed": "0"
+  },
+  "lineage": {
+    "parents": [],
+    "depth": 0
+  },
+  "created_at": "2026-03-17T00:00:00Z",
+  "epoch_digest": "f1b2...a3c4"
+}
+\end{lstlisting}
+
+
+\section{Mutation Manifest Example}
+\label{app:mutation}
+
+\begin{lstlisting}[language=JSON]
+{
+  "source_epoch": "col-epoch-0001",
+  "candidates": [
+    {
+      "candidate_id": "cand-001",
+      "mutation_type": "new_glyph_binding",
+      "description": "Bind U+12100 to LOOP operator",
+      "metrics": {
+        "coherence": 60293,
+        "entropy": 45102,
+        "drift": 4587,
+        "path_invariance_gap": 0,
+        "compression": 53674,
+        "resonance_fitness": 58201,
+        "stability": 62441
+      },
+      "tripolar_state": "1"
+    }
+  ],
+  "gate_parameters": {
+    "gate_registry_digest": "e2a1...d4f5",
+    "active_gates": ["gate-coherence-v1", "gate-drift-v1"]
+  },
+  "result_epoch": "col-epoch-0002",
+  "manifest_digest": "a1b2...c3d4"
+}
+\end{lstlisting}
+
+
+\section{Gate Object Example}
+\label{app:gate}
+
+\begin{lstlisting}[language=JSON]
+{
+  "candidate_id": "cand-001",
+  "gate_id": "gate-coherence-v1",
+  "metrics": {
+    "coherence": 60293,
+    "drift": 4587,
+    "compression": 53674,
+    "resonance_fitness": 58201,
+    "stability": 62441
+  },
+  "tripolar_state": "1",
+  "evidence_digest": "b2c3...d4e5"
+}
+\end{lstlisting}
+
+
+\section{Crystal Manifest Example}
+\label{app:crystal}
+
+\begin{lstlisting}[language=JSON]
+{
+  "crystal_id": "crystal-0001",
+  "epoch_id": "col-epoch-0002",
+  "parent_epoch": "col-epoch-0001",
+  "sign_registry_digest": "a3f8...c4d1",
+  "macro_registry_digest": "c8e2...91f0",
+  "profile_registry_digest": "c1d4...e3a2",
+  "obligation_registry_digest": "d9f0...b1c3",
+  "gate_registry_digest": "e2a1...d4f5",
+  "convergence_iterations": 7,
+  "contraction_factor": 39321,
+  "evidence_chain_digest": "d3e4...f5a6",
+  "mutation_manifest_digest": "a1b2...c3d4",
+  "crystal_digest": "e4f5...a6b7"
+}
+\end{lstlisting}
+
+\section{Capsule Object Example}
+\label{app:capsule}
+
+\begin{lstlisting}[language=JSON]
+{
+  "capsule_id": "cap-001",
+  "capsule_type": "commitment",
+  "size_limit": 2048,
+  "content_digest": "f5a6...b7c8",
+  "manifest_digest": "a6b7...c8d9",
+  "policy_ref": "capsule-policy-v1",
+  "provenance": "epoch:col-epoch-0001/gate:gate-coherence-v1"
+}
+\end{lstlisting}
+
+
+\section{Sign Registry v1 Example}
+\label{app:sign-registry}
+
+\begin{lstlisting}[language=JSON]
+{
+  "schema_version": "1.0.0",
+  "type": "sign_registry",
+  "epoch_id": "col-epoch-0001",
+  "entries": [
+    {
+      "sign": "U+12000",
+      "cluster": null,
+      "role": "FN",
+      "operator_id": "op-fn-v1",
+      "transliteration": "a",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+12157",
+      "cluster": null,
+      "role": "IF",
+      "operator_id": "op-if-v1",
+      "transliteration": "tukul",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+12038",
+      "cluster": null,
+      "role": "ELSE",
+      "operator_id": "op-else-v1",
+      "transliteration": "bal",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+1202D",
+      "cluster": null,
+      "role": "RETURN",
+      "operator_id": "op-return-v1",
+      "transliteration": "as",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+120FB",
+      "cluster": null,
+      "role": "LET",
+      "operator_id": "op-let-v1",
+      "transliteration": "nam",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+1214E",
+      "cluster": null,
+      "role": "PRINT",
+      "operator_id": "op-print-v1",
+      "transliteration": "ta",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+12079",
+      "cluster": null,
+      "role": "TRUE",
+      "operator_id": "op-true-v1",
+      "transliteration": "du",
+      "version": "1.0.0"
+    },
+    {
+      "sign": "U+12080",
+      "cluster": null,
+      "role": "FALSE",
+      "operator_id": "op-false-v1",
+      "transliteration": "dug",
+      "version": "1.0.0"
+    }
+  ]
+}
+\end{lstlisting}
+
+
+\section{Normative Test Vector TV1: Minimal Print}
+\label{app:tv1}
+
+\textbf{Source} (cuneiform with transliteration):
+\begin{lstlisting}
+<U+12000> <U+1214E>_main() {
+    <U+1214E>("namaste");
+}
+\end{lstlisting}
+
+\textbf{Transliterated equivalent:}
+\begin{lstlisting}
+a ta_main() {
+    ta("namaste");
+}
+\end{lstlisting}
+
+\textbf{Expected IR nodes:} Module(root), Function(ta\_main), Block, Call(print), Literal("namaste"), Identifier(print).
+
+\textbf{Expected edges:} Module $\xrightarrow{\text{contains}}$ Function, Function $\xrightarrow{\text{contains}}$ Block, Block $\xrightarrow{\text{contains}}$ Call, Call $\xrightarrow{\text{callee\_ref}}$ Identifier, Call $\xrightarrow{\text{argument}}$ Literal.
+
+\textbf{Determinism check:} Two runs with identical RD and epoch-0 must produce identical IR digests.
+
+\section{Run Descriptor Extension for COL}
+\label{app:rd-extension}
+
+The \texttt{RunDescriptor} struct gains the following fields for COL:
+
+\begin{lstlisting}[language=JSON]
+{
+  "...existing fields...",
+  "epoch_id": "col-epoch-0001",
+  "registries": {
+    "operator": "<sha256>",
+    "macro": "<sha256>",
+    "obligation": "<sha256>",
+    "observable": "<sha256>",
+    "sign": "<sha256>",
+    "profile": "<sha256>",
+    "gate": "<sha256>"
+  }
+}
+\end{lstlisting}
+
+The existing four registry digest fields are preserved for backward compatibility with Sanskroot and HanLan. The three new fields (\texttt{sign}, \texttt{profile}, \texttt{gate}) are added for COL and default to all-zeros when unused.
+
+
+\section{Glossary}
+\label{app:glossary}
+
+\begin{description}[style=nextline,leftmargin=3cm]
+  \item[Build Time] Ordinary compilation under a fixed epoch and fixed registries.
+  \item[Capsule] Declared, bounded boundary object carried through the compilation chain.
+  \item[Condensation] Transition from a moving candidate structure to a stabilized form.
+  \item[Crystal] Stabilized, evidence-bound epoch form with complete provenance.
+  \item[Epoch] Frozen, reproducible language version bound to a specific registry set.
+  \item[Evolution Time] Generation and evaluation of candidate mutations.
+  \item[Crystallization Time] Stabilization of an accepted candidate into a new epoch.
+  \item[HDAG] Directed acyclic graph of language epoch lineage.
+  \item[LD] Latent Decision --- tripolar intermediate state between rejection and acceptance.
+  \item[MEF] Morphogenetic Evidence Framework --- tamper-evident hash chain.
+  \item[Q16] Fixed-point arithmetic: signed 32-bit, $1/65536$ resolution.
+  \item[Registry Lineage] Directed provenance structure of language and registry versions.
+  \item[Semantic Density] Ratio of IR nodes to surface tokens after macro expansion.
+  \item[Sign] A cuneiform Unicode character treated as an atomic semantic token.
+  \item[TIC] Temporal Information Certificate --- convergence tracking object.
+  \item[Tripolar Gate] Decision layer classifying candidates as 0 (reject), LD (latent), or 1 (accept).
+\end{description}
+
+\end{document}
