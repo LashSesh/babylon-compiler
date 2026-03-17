@@ -22,6 +22,9 @@ glyph-gate = { path = "../glyph-gate" }
 glyph-expand = { path = "../glyph-expand" }
 glyph-bundle = { path = "../glyph-bundle" }
 glyph-verify = { path = "../glyph-verify" }
+glyph-epoch = { path = "../glyph-epoch" }
+glyph-mutate = { path = "../glyph-mutate" }
+glyph-capsule = { path = "../glyph-capsule" }
 clap = { workspace = true }
 serde_json = { workspace = true }
 unicode-normalization = { workspace = true }

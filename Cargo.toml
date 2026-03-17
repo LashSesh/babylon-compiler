@@ -15,6 +15,9 @@ members = [
     "crates/glyph-expand",
     "crates/glyph-bundle",
     "crates/glyph-verify",
+    "crates/glyph-epoch",
+    "crates/glyph-mutate",
+    "crates/glyph-capsule",
     "crates/glyph-cli",
 ]
 

@@ -38,6 +38,12 @@ pub struct RegistryDigests {
     pub r#macro: String,
     pub obligation: String,
     pub observable: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub sign: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub profile: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub gate: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,6 +183,9 @@ pub fn emit_bundle(result: &PipelineResult, output_dir: &Path) -> Result<PathBuf
             r#macro: result.rd.registries.r#macro.clone(),
             obligation: result.rd.registries.obligation.clone(),
             observable: result.rd.registries.observable.clone(),
+            sign: result.rd.registries.sign.clone(),
+            profile: result.rd.registries.profile.clone(),
+            gate: result.rd.registries.gate.clone(),
         },
         artifact_digests: BTreeMap::new(),
         ir_schema_version: "1.0.0".to_string(),

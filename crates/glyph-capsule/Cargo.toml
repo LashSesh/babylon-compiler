@@ -1,0 +1,10 @@
+[package]
+name = "glyph-capsule"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+glyph-canon = { path = "../glyph-canon" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

@@ -1,10 +1,14 @@
-//! Glyph registry types from the Glyph Foundry spec v2.1 (Sections 17 & 19).
+//! Glyph registry types from the Glyph Foundry spec v2.1 (Sections 17 & 19)
+//! and COL Master Specification v3.0.
 //!
-//! Defines four registry types:
+//! Defines seven registry types:
 //! - [`OperatorRegistry`] (Section 19.1)
 //! - [`MacroRegistry`] (Section 19.2)
 //! - [`ObservableRegistry`] (Section 19.3)
 //! - [`ObligationRegistry`] (Section 17.1)
+//! - [`SignRegistry`] (COL Section 9.2)
+//! - [`ProfileRegistry`] (COL Section 12)
+//! - [`GateRegistry`] (COL Section 13)
 
 use glyph_ir::NodeKind;
 use glyph_q16::Q16;
@@ -166,6 +170,207 @@ impl ObligationRegistry {
         ObligationRegistry {
             schema_version: REGISTRY_SCHEMA_VERSION.to_string(),
             registry_type: "obligation_registry".to_string(),
+            entries: Vec::new(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// SignRegistry (COL Section 9.2)
+// ---------------------------------------------------------------------------
+
+/// A single sign entry mapping a cuneiform codepoint to a role.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignEntry {
+    pub sign: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cluster: Option<String>,
+    pub role: String,
+    pub operator_id: String,
+    pub transliteration: String,
+    pub version: String,
+}
+
+/// The sign registry — maps cuneiform Unicode signs to language roles.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignRegistry {
+    pub schema_version: String,
+    #[serde(rename = "type")]
+    pub registry_type: String,
+    pub epoch_id: String,
+    pub entries: Vec<SignEntry>,
+}
+
+impl SignRegistry {
+    /// Create the normative epoch-0 sign registry with the 8 required mappings.
+    pub fn default_epoch0() -> Self {
+        SignRegistry {
+            schema_version: REGISTRY_SCHEMA_VERSION.to_string(),
+            registry_type: "sign_registry".to_string(),
+            epoch_id: "epoch-0".to_string(),
+            entries: vec![
+                SignEntry {
+                    sign: "U+12000".to_string(),
+                    cluster: None,
+                    role: "FN".to_string(),
+                    operator_id: "op-fn-v1".to_string(),
+                    transliteration: "a".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+12157".to_string(),
+                    cluster: None,
+                    role: "IF".to_string(),
+                    operator_id: "op-if-v1".to_string(),
+                    transliteration: "tukul".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+12038".to_string(),
+                    cluster: None,
+                    role: "ELSE".to_string(),
+                    operator_id: "op-else-v1".to_string(),
+                    transliteration: "bal".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+1202D".to_string(),
+                    cluster: None,
+                    role: "RETURN".to_string(),
+                    operator_id: "op-return-v1".to_string(),
+                    transliteration: "ash".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+120FB".to_string(),
+                    cluster: None,
+                    role: "LET".to_string(),
+                    operator_id: "op-let-v1".to_string(),
+                    transliteration: "nam".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+1214E".to_string(),
+                    cluster: None,
+                    role: "PRINT".to_string(),
+                    operator_id: "op-print-v1".to_string(),
+                    transliteration: "ta".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+12079".to_string(),
+                    cluster: None,
+                    role: "TRUE".to_string(),
+                    operator_id: "op-true-v1".to_string(),
+                    transliteration: "du".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                SignEntry {
+                    sign: "U+12080".to_string(),
+                    cluster: None,
+                    role: "FALSE".to_string(),
+                    operator_id: "op-false-v1".to_string(),
+                    transliteration: "dug".to_string(),
+                    version: "1.0.0".to_string(),
+                },
+            ],
+        }
+    }
+
+    /// Create an empty sign registry.
+    pub fn default_empty() -> Self {
+        SignRegistry {
+            schema_version: REGISTRY_SCHEMA_VERSION.to_string(),
+            registry_type: "sign_registry".to_string(),
+            epoch_id: String::new(),
+            entries: Vec::new(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ProfileRegistry (COL Section 12)
+// ---------------------------------------------------------------------------
+
+/// A single profile entry binding a metric to a weight and axis.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileEntry {
+    pub id: String,
+    pub version: String,
+    pub metric_id: String,
+    pub computation_ref: String,
+    pub weight: Q16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis_mapping: Option<usize>,
+    pub deterministic: bool,
+}
+
+/// The profile registry — defines metrics and their embedding weights.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileRegistry {
+    pub schema_version: String,
+    #[serde(rename = "type")]
+    pub registry_type: String,
+    pub entries: Vec<ProfileEntry>,
+}
+
+impl ProfileRegistry {
+    /// Create an empty profile registry.
+    pub fn default_empty() -> Self {
+        ProfileRegistry {
+            schema_version: REGISTRY_SCHEMA_VERSION.to_string(),
+            registry_type: "profile_registry".to_string(),
+            entries: Vec::new(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GateRegistry (COL Section 13)
+// ---------------------------------------------------------------------------
+
+/// Tripolar logic states: Reject (0), Latent (LD), Accept (1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TripolarState {
+    Reject,
+    Latent,
+    Accept,
+}
+
+/// Threshold definition for a single metric in a gate entry.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GateThreshold {
+    pub metric: String,
+    pub reject_below: Q16,
+    pub accept_above: Q16,
+}
+
+/// A single gate entry in the gate registry.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GateEntry {
+    pub gate_id: String,
+    pub version: String,
+    pub input_metrics: Vec<String>,
+    pub thresholds: Vec<GateThreshold>,
+    pub evidence_template: serde_json::Value,
+}
+
+/// The gate registry — defines tripolar evaluation gates.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GateRegistry {
+    pub schema_version: String,
+    #[serde(rename = "type")]
+    pub registry_type: String,
+    pub entries: Vec<GateEntry>,
+}
+
+impl GateRegistry {
+    /// Create an empty gate registry.
+    pub fn default_empty() -> Self {
+        GateRegistry {
+            schema_version: REGISTRY_SCHEMA_VERSION.to_string(),
+            registry_type: "gate_registry".to_string(),
             entries: Vec::new(),
         }
     }

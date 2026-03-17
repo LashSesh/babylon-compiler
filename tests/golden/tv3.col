@@ -1,0 +1,7 @@
+𒀀 add(x, y) {
+    𒀭 x + y;
+}
+𒀀 main() {
+    𒃻 result = add(3, 4);
+    𒅎(result);
+}
