@@ -34,7 +34,7 @@ Source ─→ S0 Ingest ─→ S1 Parse & Canonicalize ─→ S2 Expand ─→ S
 | `glyph-ir` | Intermediate representation — nodes, edges, documents |
 | `glyph-rd` | Run Descriptor configuration and policy binding |
 | `glyph-registry` | Operator, macro, obligation, and observable registries |
-| `glyph-frontends` | Source language frontends (currently: Sanskroot) |
+| `glyph-frontends` | Source language frontends (Sanskroot, HanLan) |
 | `glyph-embed` | H5 embedding space — 5-axis structural analysis |
 | `glyph-tic` | Temporal Information Certificate — convergence tracking |
 | `glyph-crystal` | Crystal construction and hyper-embedding |
@@ -92,6 +92,38 @@ The default frontend parses **Sanskroot**, a language using Devanagari script:
 | `दर्शय` | print |
 | `निवृत्ति` | return |
 | `सत्य` / `असत्य` | true / false |
+
+## HanLan (CN++)
+
+A second frontend using Chinese characters. File extension: `.hnln`, frontend ID: `hanlan`.
+
+```
+函 主() {
+    令 x = 42;
+    若 (x > 0) {
+        示("正");
+    } 否则 {
+        示("非正");
+    }
+    返 x;
+}
+```
+
+| Keyword | Meaning |
+|---------|---------|
+| `函` | function |
+| `令` | let / assign |
+| `若` | if |
+| `否则` | else |
+| `示` | print |
+| `返` | return |
+| `真` / `假` | true / false |
+
+HanLan also accepts Sanskroot keywords as Tier-1 aliases for mixed-script compatibility.
+
+```bash
+glyph-cli run --frontend hanlan --rd run.json -i input.hnln -o ./output
+```
 
 ## Design Principles
 
