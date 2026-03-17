@@ -9,12 +9,17 @@ use std::time::Instant;
 use glyph_bundle::{emit_bundle, EvidenceRecord, PipelineResult, TraceRecord};
 use glyph_canon::{canonical_json, digest_bytes, digest_object};
 use glyph_embed::{compute_embedding, compute_genome_id, fingerprint};
+use glyph_epoch::{Epoch, EpochPolicy, EpochRegistryDigests, EpochStore};
 use glyph_expand::expand;
 use glyph_gate::evaluate_obligations;
 use glyph_ir::IrDocument;
 use glyph_mef::{MefChain, OperatorEvidence};
+use glyph_mutate::{build_manifest, evaluate_candidate, generate_candidates, CandidateResult};
 use glyph_rd::RunDescriptor;
-use glyph_registry::{MacroRegistry, ObligationRegistry};
+use glyph_registry::{
+    compute_digest, GateRegistry, MacroRegistry, ObligationRegistry, ProfileRegistry,
+    SignRegistry,
+};
 use glyph_tic::Tic;
 use glyph_verify::verify_bundle;
 
@@ -73,6 +78,45 @@ enum Commands {
         #[arg(long, default_value = "sanskroot")]
         frontend: String,
     },
+    /// Generate mutation candidates and evaluate them against a registry epoch.
+    EvolveRegistry {
+        /// Epoch ID to evolve from.
+        #[arg(long)]
+        epoch: String,
+        /// Run Descriptor file.
+        #[arg(long)]
+        rd: PathBuf,
+        /// Mutation seed.
+        #[arg(long, default_value = "0")]
+        seed: String,
+        /// Maximum number of candidates to generate.
+        #[arg(long, default_value_t = 5)]
+        max_candidates: usize,
+        /// Epoch store directory.
+        #[arg(long, default_value = "./epochs")]
+        epoch_dir: PathBuf,
+    },
+    /// Crystallize a mutation candidate into a new epoch.
+    CrystallizeEpoch {
+        /// Candidate ID to crystallize.
+        #[arg(long)]
+        candidate: String,
+        /// Parent epoch ID.
+        #[arg(long)]
+        epoch: String,
+        /// Epoch store directory.
+        #[arg(long, default_value = "./epochs")]
+        epoch_dir: PathBuf,
+    },
+    /// Inspect an epoch object.
+    InspectEpoch {
+        /// Epoch ID to inspect.
+        #[arg(long)]
+        epoch: String,
+        /// Epoch store directory.
+        #[arg(long, default_value = "./epochs")]
+        epoch_dir: PathBuf,
+    },
 }
 
 fn main() {
@@ -90,6 +134,19 @@ fn main() {
         Commands::Verify { bundle_dir } => cmd_verify(bundle_dir),
         Commands::DumpIr { input, frontend } => cmd_dump_ir(input, frontend),
         Commands::Embed { input, frontend } => cmd_embed(input, frontend),
+        Commands::EvolveRegistry {
+            epoch,
+            rd,
+            seed,
+            max_candidates,
+            epoch_dir,
+        } => cmd_evolve_registry(epoch, rd, seed, max_candidates, epoch_dir),
+        Commands::CrystallizeEpoch {
+            candidate,
+            epoch,
+            epoch_dir,
+        } => cmd_crystallize_epoch(candidate, epoch, epoch_dir),
+        Commands::InspectEpoch { epoch, epoch_dir } => cmd_inspect_epoch(epoch, epoch_dir),
     };
     process::exit(exit_code);
 }
@@ -163,6 +220,14 @@ fn s1_canon(
             let program = glyph_frontends::hanlan::parser::parse(&tokens)
                 .map_err(|e| (3, format!("Parse error: {}", e)))?;
             let doc = glyph_frontends::hanlan::lower::lower(&program, source_digest);
+            Ok(doc)
+        }
+        "cuneiform" => {
+            let tokens = glyph_frontends::cuneiform::lexer::lex(normalized)
+                .map_err(|e| (3, format!("Lex error: {}", e)))?;
+            let program = glyph_frontends::cuneiform::parser::parse(&tokens)
+                .map_err(|e| (3, format!("Parse error: {}", e)))?;
+            let doc = glyph_frontends::cuneiform::lower::lower(&program, source_digest);
             Ok(doc)
         }
         _ => Err((1, format!("Unknown frontend: {}", frontend))),
@@ -530,5 +595,153 @@ fn cmd_embed(input: PathBuf, frontend: String) -> i32 {
         emb[4].raw()
     );
     println!("{}", fp);
+    0
+}
+
+fn cmd_evolve_registry(
+    epoch_id: String,
+    _rd_path: PathBuf,
+    seed: String,
+    max_candidates: usize,
+    epoch_dir: PathBuf,
+) -> i32 {
+    let store = match EpochStore::new(&epoch_dir) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error opening epoch store: {}", e);
+            return 1;
+        }
+    };
+
+    let epoch = match store.get(&epoch_id) {
+        Ok(e) => e,
+        Err(_) => {
+            // If epoch doesn't exist, create epoch-0
+            eprintln!("Epoch {} not found, creating epoch-0.", epoch_id);
+            let sign_reg = SignRegistry::default_epoch0();
+            let macro_reg = MacroRegistry::default_empty();
+            let profile_reg = ProfileRegistry::default_empty();
+            let obligation_reg = ObligationRegistry::default_empty();
+            let gate_reg = GateRegistry::default_empty();
+
+            let epoch = Epoch::construct(
+                EpochRegistryDigests {
+                    sign: compute_digest(&sign_reg),
+                    r#macro: compute_digest(&macro_reg),
+                    profile: compute_digest(&profile_reg),
+                    obligation: compute_digest(&obligation_reg),
+                    gate: compute_digest(&gate_reg),
+                },
+                EpochPolicy::default(),
+                None,
+            );
+            if let Err(e) = store.put(&epoch) {
+                eprintln!("Error storing epoch: {}", e);
+                return 1;
+            }
+            epoch
+        }
+    };
+
+    let sign_reg = SignRegistry::default_epoch0();
+    let macro_reg = MacroRegistry::default_empty();
+    let gate_reg = GateRegistry::default_empty();
+
+    let candidates = generate_candidates(&epoch, &sign_reg, &macro_reg, &seed, max_candidates);
+
+    let mut results = Vec::new();
+    for candidate in &candidates {
+        let metrics = evaluate_candidate(candidate);
+        let gate_results = glyph_gate::evaluate_tripolar(&candidate.candidate_id, &metrics, &gate_reg);
+        let state = gate_results
+            .first()
+            .map(|g| g.tripolar_state)
+            .unwrap_or(glyph_registry::TripolarState::Latent);
+
+        results.push(CandidateResult {
+            candidate_id: candidate.candidate_id.clone(),
+            mutation_type: candidate.mutation_type,
+            description: candidate.description.clone(),
+            metrics,
+            tripolar_state: state,
+        });
+    }
+
+    let manifest = build_manifest(&epoch.epoch_id, results, None);
+    let json = serde_json::to_string_pretty(&manifest).unwrap();
+    println!("{}", json);
+
+    // Save manifest alongside epoch
+    let manifest_path = epoch_dir.join(format!("mutation-manifest-{}.json", &epoch.epoch_id[..8]));
+    if let Err(e) = std::fs::write(&manifest_path, &json) {
+        eprintln!("Warning: could not save manifest: {}", e);
+    }
+
+    0
+}
+
+fn cmd_crystallize_epoch(candidate_id: String, epoch_id: String, epoch_dir: PathBuf) -> i32 {
+    let store = match EpochStore::new(&epoch_dir) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error opening epoch store: {}", e);
+            return 1;
+        }
+    };
+
+    let parent = match store.get(&epoch_id) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Error loading parent epoch: {}", e);
+            return 1;
+        }
+    };
+
+    // Create a new epoch (child) representing the crystallized mutation
+    let new_epoch = Epoch::construct(
+        EpochRegistryDigests {
+            sign: parent.sign_registry_digest.clone(),
+            r#macro: parent.macro_registry_digest.clone(),
+            profile: parent.profile_registry_digest.clone(),
+            obligation: parent.obligation_registry_digest.clone(),
+            gate: parent.gate_registry_digest.clone(),
+        },
+        parent.policy_set.clone(),
+        Some(&parent),
+    );
+
+    if let Err(e) = store.put(&new_epoch) {
+        eprintln!("Error storing new epoch: {}", e);
+        return 1;
+    }
+
+    eprintln!(
+        "Crystallized candidate {} into epoch {}",
+        candidate_id, new_epoch.epoch_id
+    );
+    let json = serde_json::to_string_pretty(&new_epoch).unwrap();
+    println!("{}", json);
+    0
+}
+
+fn cmd_inspect_epoch(epoch_id: String, epoch_dir: PathBuf) -> i32 {
+    let store = match EpochStore::new(&epoch_dir) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error opening epoch store: {}", e);
+            return 1;
+        }
+    };
+
+    let epoch = match store.get(&epoch_id) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Error loading epoch: {}", e);
+            return 1;
+        }
+    };
+
+    let json = serde_json::to_string_pretty(&epoch).unwrap();
+    println!("{}", json);
     0
 }

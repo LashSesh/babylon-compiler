@@ -18,6 +18,8 @@ pub struct RunDescriptor {
     pub toolchain: Toolchain,
     #[serde(default = "default_digest_algorithm")]
     pub digest_algorithm: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub epoch_id: Option<String>,
 }
 
 fn default_digest_algorithm() -> String {
@@ -74,6 +76,12 @@ pub struct RegistryRefs {
     pub r#macro: String,
     pub obligation: String,
     pub observable: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub sign: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub profile: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub gate: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,7 +128,10 @@ impl RunDescriptor {
                 operator: placeholder_hash.clone(),
                 r#macro: placeholder_hash.clone(),
                 obligation: placeholder_hash.clone(),
-                observable: placeholder_hash,
+                observable: placeholder_hash.clone(),
+                sign: String::new(),
+                profile: String::new(),
+                gate: String::new(),
             },
             toolchain: Toolchain {
                 name: "glyph".to_string(),
@@ -128,6 +139,7 @@ impl RunDescriptor {
                 platform: None,
             },
             digest_algorithm: "sha256".to_string(),
+            epoch_id: None,
         };
         rd.run_id = rd.compute_run_id();
         rd

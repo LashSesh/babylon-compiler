@@ -1,0 +1,7 @@
+𒀀 check(x) {
+    𒅗 (x > 0) {
+        𒅎("positive");
+    } 𒀸 {
+        𒅎("non-positive");
+    }
+}
